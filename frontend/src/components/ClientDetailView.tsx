@@ -228,7 +228,7 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({ client, isOpen, onC
                       <span>{getFullName()}</span>
                     </div>
                     <div className="info-item">
-                      <label>KYC Number</label>
+                      <label>KYC/CIF Number</label>
                       <span>{client.kycNumber}</span>
                     </div>
                     <div className="info-item">

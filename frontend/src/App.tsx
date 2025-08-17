@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navigation from './components/Navigation';
 import Dashboard from './components/Dashboard';
 import UserManagement from './components/UserManagement';
+import ShopManagement from './components/ShopManagement';
 import './App.css';
 
 function App() {
@@ -13,6 +14,8 @@ function App() {
         return <Dashboard />;
       case 'users':
         return <UserManagement />;
+      case 'shops':
+        return <ShopManagement />;
       case 'settings':
         return (
           <div className="content-section">

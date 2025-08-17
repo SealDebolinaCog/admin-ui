@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import './UserManagement.css';
 import ClientForm from './ClientForm';
@@ -12,7 +12,7 @@ interface User {
   role: string;
   phone?: string;
   company?: string;
-  status?: string;
+  status?: 'invite_now' | 'pending' | 'active' | 'suspended' | 'inactive';
   joinDate?: string;
   lastLogin?: string;
   profilePicture?: string;
@@ -38,6 +38,92 @@ const UserManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [newUser, setNewUser] = useState({ firstName: '', lastName: '', email: '', role: 'user' });
   const [searchFilter, setSearchFilter] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Filter and Advanced Search state
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    status: [] as string[],
+    dateCreated: {
+      from: '',
+      to: ''
+    },
+    dateModified: {
+      from: '',
+      to: ''
+    }
+  });
+  const [advancedSearch, setAdvancedSearch] = useState({
+    aadhaarNumber: '',
+    addressLine1: '',
+    panNumber: '',
+    emailId: '',
+    mobileNumber: ''
+  });
+
+  // Applied filters state (what's actually sent to API)
+  const [appliedFilters, setAppliedFilters] = useState({
+    status: [] as string[],
+    dateCreated: { from: '', to: '' },
+    dateModified: { from: '', to: '' }
+  });
+  const [appliedAdvancedSearch, setAppliedAdvancedSearch] = useState({
+    aadhaarNumber: '',
+    addressLine1: '',
+    panNumber: '',
+    emailId: '',
+    mobileNumber: ''
+  });
+
+  // Helper function to count active applied filters
+  const getActiveFilterCount = () => {
+    let count = 0;
+    count += appliedFilters.status.length;
+    if (appliedFilters.dateCreated.from || appliedFilters.dateCreated.to) count++;
+    if (appliedFilters.dateModified.from || appliedFilters.dateModified.to) count++;
+    if (appliedAdvancedSearch.aadhaarNumber) count++;
+    if (appliedAdvancedSearch.addressLine1) count++;
+    if (appliedAdvancedSearch.panNumber) count++;
+    if (appliedAdvancedSearch.emailId) count++;
+    if (appliedAdvancedSearch.mobileNumber) count++;
+    return count;
+  };
+
+  // Helper function to check if there are pending changes
+  const hasPendingChanges = () => {
+    const filtersChanged = JSON.stringify(filters) !== JSON.stringify(appliedFilters);
+    const searchChanged = JSON.stringify(advancedSearch) !== JSON.stringify(appliedAdvancedSearch);
+    return filtersChanged || searchChanged;
+  };
+
+  // Apply filters function
+  const applyFilters = () => {
+    setAppliedFilters({ ...filters });
+    setAppliedAdvancedSearch({ ...advancedSearch });
+    setCurrentPage(1); // Reset to first page when applying filters
+  };
+
+  // Clear all filters function
+  const clearAllFilters = () => {
+    const emptyFilters = {
+      status: [] as string[],
+      dateCreated: { from: '', to: '' },
+      dateModified: { from: '', to: '' }
+    };
+    const emptySearch = {
+      aadhaarNumber: '',
+      addressLine1: '',
+      panNumber: '',
+      emailId: '',
+      mobileNumber: ''
+    };
+    
+    setFilters(emptyFilters);
+    setAdvancedSearch(emptySearch);
+    setAppliedFilters(emptyFilters);
+    setAppliedAdvancedSearch(emptySearch);
+    setCurrentPage(1);
+  };
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,12 +171,28 @@ const UserManagement: React.FC = () => {
   };
 
   const getMobileForUser = (user: User): string => {
-    const phones = [
-      '9876543210', '8765432109', '7654321098', '6543210987', '9543210876',
-      '8432109765', '7321098654', '6210987543', '9109876543', '8098765432'
+    const mobiles = [
+      '7227349632', '9007548029', '8120479482', '9876543210', '8765432109',
+      '7654321098', '9543210987', '8432109876', '7321098765', '9210987654'
     ];
-    const phone = (user as any).phoneNumbers?.[0]?.number || user.phone || phones[user.id % phones.length];
-    return `+91 ${phone}`;
+    return (user as any).phoneNumbers?.[0]?.number || `+91 ${mobiles[user.id % mobiles.length]}`;
+  };
+
+  const getStatusDisplay = (status: string): string => {
+    switch (status) {
+      case 'invite_now':
+        return 'Invite Now';
+      case 'pending':
+        return 'Pending';
+      case 'active':
+        return 'Active';
+      case 'suspended':
+        return 'Suspended';
+      case 'inactive':
+        return 'Inactive';
+      default:
+        return 'Active';
+    }
   };
 
   // Pagination handlers
@@ -108,14 +210,81 @@ const UserManagement: React.FC = () => {
     setCurrentPage(1); // Reset to first page when searching
   };
 
+  // Filter helper functions
+  const updateActiveFiltersCount = useCallback(() => {
+    let count = 0;
+    if (filters.status.length > 0) count++;
+    if (filters.dateCreated.from || filters.dateCreated.to) count++;
+    if (filters.dateModified.from || filters.dateModified.to) count++;
+    
+    // Count advanced search fields
+    if (advancedSearch.aadhaarNumber) count++;
+    if (advancedSearch.addressLine1) count++;
+    if (advancedSearch.panNumber) count++;
+    if (advancedSearch.emailId) count++;
+    if (advancedSearch.mobileNumber) count++;
+  }, [filters, advancedSearch]);
+
+  const handleFilterChange = (filterType: string, value: any) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+    setCurrentPage(1); // Reset to first page when filtering
+  };
+
+  const handleAdvancedSearchChange = (field: string, value: string) => {
+    setAdvancedSearch(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+
+
   const fetchUsers = useCallback(async (page = currentPage, limit = recordsPerPage, search = searchFilter) => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        ...(search && { search })
+        ...(search && search.length >= 3 && { search })
       });
+
+      // Add filter parameters (use applied filters only)
+      if (appliedFilters.status.length > 0) {
+        params.append('status', appliedFilters.status.join(','));
+      }
+      if (appliedFilters.dateCreated.from) {
+        params.append('dateCreatedFrom', appliedFilters.dateCreated.from);
+      }
+      if (appliedFilters.dateCreated.to) {
+        params.append('dateCreatedTo', appliedFilters.dateCreated.to);
+      }
+      if (appliedFilters.dateModified.from) {
+        params.append('dateModifiedFrom', appliedFilters.dateModified.from);
+      }
+      if (appliedFilters.dateModified.to) {
+        params.append('dateModifiedTo', appliedFilters.dateModified.to);
+      }
+
+      // Add advanced search parameters (use applied search only)
+      if (appliedAdvancedSearch.aadhaarNumber) {
+        params.append('aadhaarNumber', appliedAdvancedSearch.aadhaarNumber);
+      }
+      if (appliedAdvancedSearch.addressLine1) {
+        params.append('addressLine1', appliedAdvancedSearch.addressLine1);
+      }
+      if (appliedAdvancedSearch.panNumber) {
+        params.append('panNumber', appliedAdvancedSearch.panNumber);
+      }
+      if (appliedAdvancedSearch.emailId) {
+        params.append('emailId', appliedAdvancedSearch.emailId);
+      }
+      if (appliedAdvancedSearch.mobileNumber) {
+        params.append('mobileNumber', appliedAdvancedSearch.mobileNumber);
+      }
       
       const response = await axios.get(`/api/users?${params}`);
       if (response.data.success) {
@@ -135,11 +304,20 @@ const UserManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, recordsPerPage, searchFilter]);
+  }, [currentPage, recordsPerPage, searchFilter, appliedFilters, appliedAdvancedSearch]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  // Trigger fetchUsers when applied filters change
+  useEffect(() => {
+    fetchUsers();
+  }, [appliedFilters, appliedAdvancedSearch]);
+
+  useEffect(() => {
+    updateActiveFiltersCount();
+  }, [updateActiveFiltersCount]);
 
   const handleSuspendClient = async (id: number) => {
     try {
@@ -248,12 +426,12 @@ const UserManagement: React.FC = () => {
         isVerified: true
       }],
       panCard: {
-        number: 'ABCDE1234F',
+        number: `ABCDE${client.id.toString().padStart(4, '0')}F`,
         verificationStatus: 'verified' as const,
         verifiedAt: '2024-01-15'
       },
       aadhaarCard: {
-        number: 'XXXX-XXXX-1234',
+        number: `${(client.id * 123456789).toString().padStart(12, '0').slice(0, 12)}`,
         verificationStatus: 'verified' as const,
         verifiedAt: '2024-01-15'
       },
@@ -356,11 +534,31 @@ const UserManagement: React.FC = () => {
               📊
             </button>
           </div>
-          <div className="search-input-container">
+          <form 
+            className="search-input-container"
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              if (searchFilter.length >= 3) {
+                fetchUsers(1, recordsPerPage, searchFilter);
+              }
+              
+              // Maintain focus
+              setTimeout(() => {
+                if (searchInputRef.current) {
+                  searchInputRef.current.focus();
+                }
+              }, 0);
+              
+              return false;
+            }}
+          >
             <span className="search-icon">🔍</span>
             <input
+              ref={searchInputRef}
               type="text"
-              placeholder="Search clients by name..."
+              placeholder="Search clients by name (min 3 letters)..."
               value={searchFilter}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="search-input"
@@ -374,7 +572,18 @@ const UserManagement: React.FC = () => {
                 ✕
               </button>
             )}
-          </div>
+            {searchFilter && searchFilter.length > 0 && searchFilter.length < 3 && (
+              <div className="search-validation-message">
+                Enter at least 3 characters to search
+              </div>
+            )}
+          </form>
+          <button 
+            className={`filter-toggle-btn ${getActiveFilterCount() > 0 ? 'has-filters' : ''}`}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            🔧 Filters {getActiveFilterCount() > 0 && <span className="filter-count">{getActiveFilterCount()}</span>}
+          </button>
           <button 
             className="add-user-btn"
             onClick={handleAddNewClient}
@@ -384,6 +593,194 @@ const UserManagement: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Advanced Filter Panel */}
+      {showFilters && (
+        <div className="filter-panel">
+          <div className="filter-panel-header">
+            <h3>🔍 Advanced Filters</h3>
+            <div className="filter-actions">
+              {getActiveFilterCount() > 0 && (
+                <button className="clear-filters-btn" onClick={clearAllFilters}>
+                  Clear All ({getActiveFilterCount()})
+                </button>
+              )}
+              <button className="close-filters-btn" onClick={() => setShowFilters(false)}>
+                ✕
+              </button>
+            </div>
+          </div>
+          
+          <div className="filter-content">
+            {/* Status Filter */}
+            <div className="filter-group">
+              <label className="filter-label">📊 Status</label>
+              <div className="filter-options">
+                {['invite_now', 'pending', 'active', 'suspended'].map(status => (
+                  <label key={status} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={filters.status.includes(status)}
+                      onChange={(e) => {
+                        const newStatus = e.target.checked
+                          ? [...filters.status, status]
+                          : filters.status.filter((s: string) => s !== status);
+                        handleFilterChange('status', newStatus);
+                      }}
+                    />
+                    <span className="checkbox-text">
+                      {status === 'invite_now' ? '🔴 Invite Now' : 
+                       status === 'pending' ? '🟡 Pending' : 
+                       status === 'active' ? '🟢 Active' : '🟠 Suspended'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Date Created Filter */}
+            <div className="filter-group">
+              <label className="filter-label">📅 Date Created</label>
+              <div className="date-range-inputs">
+                <div className="date-input-group">
+                  <label>From:</label>
+                  <input
+                    type="date"
+                    value={filters.dateCreated.from}
+                    onChange={(e) => handleFilterChange('dateCreated', {
+                      ...filters.dateCreated,
+                      from: e.target.value
+                    })}
+                    className="date-input"
+                  />
+                </div>
+                <div className="date-input-group">
+                  <label>To:</label>
+                  <input
+                    type="date"
+                    value={filters.dateCreated.to}
+                    onChange={(e) => handleFilterChange('dateCreated', {
+                      ...filters.dateCreated,
+                      to: e.target.value
+                    })}
+                    className="date-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Date Modified Filter */}
+            <div className="filter-group">
+              <label className="filter-label">📝 Date Last Modified</label>
+              <div className="date-range-inputs">
+                <div className="date-input-group">
+                  <label>From:</label>
+                  <input
+                    type="date"
+                    value={filters.dateModified.from}
+                    onChange={(e) => handleFilterChange('dateModified', {
+                      ...filters.dateModified,
+                      from: e.target.value
+                    })}
+                    className="date-input"
+                  />
+                </div>
+                <div className="date-input-group">
+                  <label>To:</label>
+                  <input
+                    type="date"
+                    value={filters.dateModified.to}
+                    onChange={(e) => handleFilterChange('dateModified', {
+                      ...filters.dateModified,
+                      to: e.target.value
+                    })}
+                    className="date-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Advanced Search Fields */}
+            <div className="filter-group advanced-search-section">
+              <label className="filter-label">🔍 Advanced Search</label>
+              
+              <div className="advanced-search-grid">
+                <div className="search-field">
+                  <label>Aadhaar Number:</label>
+                  <input
+                    type="text"
+                    placeholder="Enter Aadhaar number..."
+                    value={advancedSearch.aadhaarNumber}
+                    onChange={(e) => handleAdvancedSearchChange('aadhaarNumber', e.target.value)}
+                    className="advanced-search-input"
+                  />
+                </div>
+
+                <div className="search-field">
+                  <label>Address Line 1:</label>
+                  <input
+                    type="text"
+                    placeholder="Enter first line of address..."
+                    value={advancedSearch.addressLine1}
+                    onChange={(e) => handleAdvancedSearchChange('addressLine1', e.target.value)}
+                    className="advanced-search-input"
+                  />
+                </div>
+
+                <div className="search-field">
+                  <label>PAN Number:</label>
+                  <input
+                    type="text"
+                    placeholder="Enter PAN number..."
+                    value={advancedSearch.panNumber}
+                    onChange={(e) => handleAdvancedSearchChange('panNumber', e.target.value)}
+                    className="advanced-search-input"
+                  />
+                </div>
+
+                <div className="search-field">
+                  <label>Email ID:</label>
+                  <input
+                    type="email"
+                    placeholder="Enter email address..."
+                    value={advancedSearch.emailId}
+                    onChange={(e) => handleAdvancedSearchChange('emailId', e.target.value)}
+                    className="advanced-search-input"
+                  />
+                </div>
+
+                <div className="search-field">
+                  <label>Mobile Number:</label>
+                  <input
+                    type="text"
+                    placeholder="Enter mobile number..."
+                    value={advancedSearch.mobileNumber}
+                    onChange={(e) => handleAdvancedSearchChange('mobileNumber', e.target.value)}
+                    className="advanced-search-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Action Buttons */}
+            <div className="filter-actions-bottom">
+              <button 
+                className={`apply-filters-btn ${hasPendingChanges() ? 'has-changes' : ''}`}
+                onClick={applyFilters}
+                disabled={!hasPendingChanges()}
+              >
+                🔍 Apply Filters & Search
+              </button>
+              <button 
+                className="clear-all-btn"
+                onClick={clearAllFilters}
+              >
+                🗑️ Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAddForm && (
         <div className="add-user-modal">
@@ -473,22 +870,13 @@ const UserManagement: React.FC = () => {
               <div className="user-header">
                 <h3 className="full-name">{getFullName(user.firstName, user.lastName)}</h3>
                 <span className={`status-badge ${user.status || 'active'}`}>
-                  {user.status === 'active' ? '🟢' : user.status === 'pending' ? '🟡' : user.status === 'suspended' ? '🟠' : '🔴'} 
-                  {(user.status || 'active').toUpperCase()}
+                  {user.status === 'active' ? '🟢' : user.status === 'pending' ? '🟡' : user.status === 'suspended' ? '🟠' : '🔴'} {getStatusDisplay(user.status || 'active')}
                 </span>
               </div>
               <div className="user-details">
                 <div className="detail-row">
                   <span className="detail-label">Address:</span>
                   <span className="detail-value">{getAddressForUser(user)}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">KYC:</span>
-                  <span className="detail-value">{getKYCForUser(user)}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">PAN:</span>
-                  <span className="detail-value">{getPANForUser(user)}</span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Mobile:</span>
@@ -536,8 +924,6 @@ const UserManagement: React.FC = () => {
               <tr>
                 <th>Client</th>
                 <th>Address</th>
-                <th>KYC</th>
-                <th>PAN</th>
                 <th>Mobile</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -569,16 +955,6 @@ const UserManagement: React.FC = () => {
                       {getAddressForUser(user)}
                     </div>
                   </td>
-                  <td className="kyc-cell">
-                    <div className="cell-content">
-                      {getKYCForUser(user)}
-                    </div>
-                  </td>
-                  <td className="pan-cell">
-                    <div className="cell-content">
-                      {getPANForUser(user)}
-                    </div>
-                  </td>
                   <td className="mobile-cell">
                     <div className="cell-content">
                       {getMobileForUser(user)}
@@ -586,8 +962,7 @@ const UserManagement: React.FC = () => {
                   </td>
                   <td className="status-cell">
                     <span className={`table-status-badge ${user.status || 'active'}`}>
-                      {user.status === 'active' ? '🟢' : user.status === 'pending' ? '🟡' : user.status === 'suspended' ? '🟠' : '🔴'} 
-                      {(user.status || 'active').toUpperCase()}
+                      {user.status === 'active' ? '🟢' : user.status === 'pending' ? '🟡' : user.status === 'suspended' ? '🟠' : '🔴'} {getStatusDisplay(user.status || 'active')}
                     </span>
                   </td>
                   <td className="actions-cell">
@@ -783,7 +1158,36 @@ const UserManagement: React.FC = () => {
           lastName: editingClient.lastName,
           email: editingClient.email,
           status: editingClient.status as any || 'active',
-          accountBalance: editingClient.accountBalance
+          accountBalance: editingClient.accountBalance,
+          kycNumber: `KYC${new Date().getFullYear()}${editingClient.id.toString().padStart(6, '0')}`,
+          address: {
+            addressLine1: `${editingClient.id} Main Street`,
+            addressLine2: editingClient.company || 'Business District',
+            addressLine3: '',
+            state: 'West Bengal',
+            district: 'Nadia',
+            pincode: '741501',
+            country: 'India'
+          },
+          phoneNumbers: editingClient.phone ? [{
+            id: 'phone-1',
+            countryCode: '+91',
+            number: editingClient.phone.replace(/^\+91\s*/, ''),
+            type: 'primary' as const,
+            isVerified: false
+          }] : [],
+          panCard: {
+            number: `ABCDE${editingClient.id.toString().padStart(4, '0')}F`,
+            imageUrl: undefined,
+            verificationStatus: 'pending' as const,
+            verifiedAt: undefined
+          },
+          aadhaarCard: {
+            number: `${(editingClient.id * 123456789).toString().padStart(12, '0').slice(0, 12)}`,
+            imageUrl: undefined,
+            verificationStatus: 'pending' as const,
+            verifiedAt: undefined
+          }
         } : undefined}
         mode={editingClient ? 'edit' : 'add'}
       />

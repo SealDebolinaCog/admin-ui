@@ -86,16 +86,47 @@ interface ClientFormProps {
   mode: 'add' | 'edit';
 }
 
-// Indian states and districts data
+// Indian states and union territories data (comprehensive list)
 const INDIAN_STATES = [
-  { state: 'Maharashtra', districts: ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad', 'Solapur', 'Kolhapur', 'Sangli'] },
-  { state: 'Karnataka', districts: ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum', 'Gulbarga', 'Shimoga', 'Tumkur'] },
-  { state: 'Tamil Nadu', districts: ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Erode', 'Vellore'] },
+  // States (28)
+  { state: 'Andhra Pradesh', districts: ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool', 'Rajahmundry', 'Tirupati', 'Anantapur'] },
+  { state: 'Arunachal Pradesh', districts: ['Itanagar', 'Naharlagun', 'Pasighat', 'Tezpur', 'Bomdila', 'Ziro', 'Along', 'Tezu'] },
+  { state: 'Assam', districts: ['Guwahati', 'Silchar', 'Dibrugarh', 'Jorhat', 'Nagaon', 'Tinsukia', 'Tezpur', 'Bongaigaon'] },
+  { state: 'Bihar', districts: ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Purnia', 'Darbhanga', 'Bihar Sharif', 'Arrah'] },
+  { state: 'Chhattisgarh', districts: ['Raipur', 'Bhilai', 'Korba', 'Bilaspur', 'Durg', 'Rajnandgaon', 'Jagdalpur', 'Raigarh'] },
+  { state: 'Goa', districts: ['Panaji', 'Margao', 'Vasco da Gama', 'Mapusa', 'Ponda', 'Bicholim', 'Curchorem', 'Sanquelim'] },
   { state: 'Gujarat', districts: ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Gandhinagar', 'Anand'] },
+  { state: 'Haryana', districts: ['Gurugram', 'Faridabad', 'Panipat', 'Ambala', 'Yamunanagar', 'Rohtak', 'Hisar', 'Karnal'] },
+  { state: 'Himachal Pradesh', districts: ['Shimla', 'Dharamshala', 'Solan', 'Mandi', 'Palampur', 'Una', 'Kullu', 'Hamirpur'] },
+  { state: 'Jharkhand', districts: ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Deoghar', 'Phusro', 'Hazaribagh', 'Giridih'] },
+  { state: 'Karnataka', districts: ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum', 'Gulbarga', 'Shimoga', 'Tumkur'] },
+  { state: 'Kerala', districts: ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Palakkad', 'Alappuzha', 'Kannur'] },
+  { state: 'Madhya Pradesh', districts: ['Bhopal', 'Indore', 'Gwalior', 'Jabalpur', 'Ujjain', 'Sagar', 'Dewas', 'Satna'] },
+  { state: 'Maharashtra', districts: ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Aurangabad', 'Solapur', 'Kolhapur', 'Sangli'] },
+  { state: 'Manipur', districts: ['Imphal', 'Thoubal', 'Bishnupur', 'Churachandpur', 'Ukhrul', 'Senapati', 'Tamenglong', 'Chandel'] },
+  { state: 'Meghalaya', districts: ['Shillong', 'Tura', 'Jowai', 'Nongpoh', 'Baghmara', 'Ampati', 'Resubelpara', 'Khliehriat'] },
+  { state: 'Mizoram', districts: ['Aizawl', 'Lunglei', 'Saiha', 'Champhai', 'Kolasib', 'Serchhip', 'Lawngtlai', 'Mamit'] },
+  { state: 'Nagaland', districts: ['Kohima', 'Dimapur', 'Mokokchung', 'Tuensang', 'Wokha', 'Zunheboto', 'Phek', 'Kiphire'] },
+  { state: 'Odisha', districts: ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Brahmapur', 'Sambalpur', 'Puri', 'Balasore', 'Baripada'] },
+  { state: 'Punjab', districts: ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Mohali', 'Firozpur', 'Hoshiarpur'] },
   { state: 'Rajasthan', districts: ['Jaipur', 'Jodhpur', 'Kota', 'Bikaner', 'Ajmer', 'Udaipur', 'Alwar', 'Bharatpur'] },
+  { state: 'Sikkim', districts: ['Gangtok', 'Namchi', 'Gyalshing', 'Mangan', 'Pakyong', 'Soreng', 'Rangpo', 'Singtam'] },
+  { state: 'Tamil Nadu', districts: ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Erode', 'Vellore'] },
+  { state: 'Telangana', districts: ['Hyderabad', 'Warangal', 'Nizamabad', 'Khammam', 'Karimnagar', 'Ramagundam', 'Mahbubnagar', 'Nalgonda'] },
+  { state: 'Tripura', districts: ['Agartala', 'Dharmanagar', 'Udaipur', 'Kailasahar', 'Belonia', 'Khowai', 'Ambassa', 'Santirbazar'] },
   { state: 'Uttar Pradesh', districts: ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Meerut', 'Varanasi', 'Allahabad', 'Bareilly'] },
-  { state: 'West Bengal', districts: ['Kolkata', 'Howrah', 'Durgapur', 'Asansol', 'Siliguri', 'Bardhaman', 'Malda', 'Kharagpur'] },
-  { state: 'Delhi', districts: ['New Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'Central Delhi'] }
+  { state: 'Uttarakhand', districts: ['Dehradun', 'Haridwar', 'Roorkee', 'Haldwani', 'Rudrapur', 'Kashipur', 'Rishikesh', 'Kotdwar'] },
+  { state: 'West Bengal', districts: ['Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur', 'Darjeeling', 'Hooghly', 'Howrah', 'Jalpaiguri', 'Jhargram', 'Kalimpong', 'Kolkata', 'Malda', 'Murshidabad', 'Nadia', 'North 24 Parganas', 'Paschim Bardhaman', 'Paschim Medinipur', 'Purba Bardhaman', 'Purba Medinipur', 'Purulia', 'South 24 Parganas', 'Uttar Dinajpur'] },
+  
+  // Union Territories (8)
+  { state: 'Andaman and Nicobar Islands', districts: ['Port Blair', 'Car Nicobar', 'Mayabunder', 'Rangat', 'Diglipur', 'Campbell Bay', 'Nancowry', 'Little Andaman'] },
+  { state: 'Chandigarh', districts: ['Chandigarh'] },
+  { state: 'Dadra and Nagar Haveli and Daman and Diu', districts: ['Daman', 'Diu', 'Silvassa', 'Dadra', 'Nagar Haveli'] },
+  { state: 'Delhi', districts: ['New Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'Central Delhi', 'North East Delhi', 'North West Delhi', 'South East Delhi', 'South West Delhi', 'Shahdara'] },
+  { state: 'Jammu and Kashmir', districts: ['Srinagar', 'Jammu', 'Anantnag', 'Baramulla', 'Kupwara', 'Pulwama', 'Rajouri', 'Poonch'] },
+  { state: 'Ladakh', districts: ['Leh', 'Kargil', 'Nubra', 'Changthang', 'Zanskar', 'Drass'] },
+  { state: 'Lakshadweep', districts: ['Kavaratti', 'Agatti', 'Minicoy', 'Amini', 'Andrott', 'Kalpeni', 'Kadmat', 'Kiltan'] },
+  { state: 'Puducherry', districts: ['Puducherry', 'Karaikal', 'Mahe', 'Yanam'] }
 ];
 
 const PHONE_TYPES = [
@@ -132,9 +163,9 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
       addressLine1: '',
       addressLine2: '',
       addressLine3: '',
-      state: '',
-      district: '',
-      pincode: '',
+      state: 'West Bengal',
+      district: 'Nadia',
+      pincode: '741501',
       country: 'India'
     },
     kycNumber: '',
@@ -184,30 +215,326 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
   }, [formData.address.state]);
 
   // Validation functions
-  const validatePAN = (pan: string): boolean => {
+  const validateName = (name: string): { isValid: boolean; error?: string } => {
+    if (!name.trim()) {
+      return { isValid: false, error: 'Name is required' };
+    }
+    
+    if (name.length < 2) {
+      return { isValid: false, error: 'Name must be at least 2 characters long' };
+    }
+    
+    if (name.length > 50) {
+      return { isValid: false, error: 'Name must not exceed 50 characters' };
+    }
+    
+    if (!/^[a-zA-Z\s]+$/.test(name)) {
+      return { isValid: false, error: 'Name can only contain letters and spaces' };
+    }
+    
+    return { isValid: true };
+  };
+
+  const validatePAN = (pan: string): { isValid: boolean; error?: string } => {
+    // PAN is optional - if empty, it's valid
+    if (!pan.trim()) {
+      return { isValid: true };
+    }
+    
+    // Check for symbols or invalid characters (only alphanumeric allowed)
+    if (!/^[A-Za-z0-9]+$/.test(pan)) {
+      return { isValid: false, error: 'PAN Number can only contain letters and numbers, no symbols or spaces' };
+    }
+    
+    if (pan.length !== 10) {
+      return { isValid: false, error: 'PAN Number must be exactly 10 characters' };
+    }
+    
+    // Standard Indian PAN format: 5 letters, 4 digits, 1 letter
     const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-    return panRegex.test(pan);
+    if (!panRegex.test(pan.toUpperCase())) {
+      return { isValid: false, error: 'PAN format should be ABCDE1234F (5 letters, 4 digits, 1 letter)' };
+    }
+    
+    return { isValid: true };
   };
 
-  const validateAadhaar = (aadhaar: string): boolean => {
-    // Allow both full and masked format
-    const aadhaarRegex = /^(\d{4}\s?\d{4}\s?\d{4}|XXXX-XXXX-\d{4})$/;
-    return aadhaarRegex.test(aadhaar.replace(/\s/g, ''));
+  const validateAadhaar = (aadhaar: string): { isValid: boolean; error?: string } => {
+    // Aadhaar is optional - if empty, it's valid
+    if (!aadhaar.trim()) {
+      return { isValid: true };
+    }
+    
+    // Check for non-numeric characters (only digits allowed, no symbols or letters)
+    if (!/^\d+$/.test(aadhaar.replace(/[\s-]/g, ''))) {
+      return { isValid: false, error: 'Aadhaar Number can only contain digits, no symbols or characters' };
+    }
+    
+    const cleanAadhaar = aadhaar.replace(/[\s-]/g, '');
+    
+    // Indian Aadhaar format: exactly 12 digits
+    if (cleanAadhaar.length !== 12) {
+      return { isValid: false, error: 'Aadhaar Number must be exactly 12 digits' };
+    }
+    
+    const fullAadhaarRegex = /^\d{12}$/;
+    if (!fullAadhaarRegex.test(cleanAadhaar)) {
+      return { isValid: false, error: 'Aadhaar Number must contain only 12 digits' };
+    }
+    
+    // Basic validation - cannot contain only repeated digits
+    if (/^(0+|1+|2+|3+|4+|5+|6+|7+|8+|9+)$/.test(cleanAadhaar)) {
+      return { isValid: false, error: 'Aadhaar Number cannot contain only repeated digits' };
+    }
+    
+    return { isValid: true };
   };
 
-  const validatePincode = (pincode: string): boolean => {
+  const validatePincode = (pincode: string): { isValid: boolean; error?: string } => {
+    if (!pincode.trim()) {
+      return { isValid: false, error: 'Pincode is required' };
+    }
+    
+    if (pincode.length !== 6) {
+      return { isValid: false, error: 'Pincode must be exactly 6 digits' };
+    }
+    
     const pincodeRegex = /^[1-9][0-9]{5}$/;
-    return pincodeRegex.test(pincode);
+    if (!pincodeRegex.test(pincode)) {
+      return { isValid: false, error: 'Pincode should start with 1-9 followed by 5 digits' };
+    }
+    
+    return { isValid: true };
   };
 
-  const validatePhone = (phone: string): boolean => {
+  const validatePhone = (phone: string): { isValid: boolean; error?: string } => {
+    if (!phone.trim()) {
+      return { isValid: false, error: 'Phone number is required' };
+    }
+    
+    const cleanPhone = phone.replace(/[\s-+()]/g, '');
+    
+    if (cleanPhone.length !== 10) {
+      return { isValid: false, error: 'Phone number must be exactly 10 digits' };
+    }
+    
     const phoneRegex = /^[6-9]\d{9}$/;
-    return phoneRegex.test(phone);
+    if (!phoneRegex.test(cleanPhone)) {
+      return { isValid: false, error: 'Phone number should start with 6-9 followed by 9 digits' };
+    }
+    
+    return { isValid: true };
   };
 
-  const validateEmail = (email: string): boolean => {
+  const validateEmail = (email: string): { isValid: boolean; error?: string } => {
+    if (!email.trim()) {
+      return { isValid: true }; // Email is optional
+    }
+    
+    if (email.length > 254) {
+      return { isValid: false, error: 'Email address is too long' };
+    }
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    if (!emailRegex.test(email)) {
+      return { isValid: false, error: 'Please enter a valid email address' };
+    }
+    
+    // Check for common invalid patterns
+    if (email.includes('..') || email.startsWith('.') || email.endsWith('.')) {
+      return { isValid: false, error: 'Email address format is invalid' };
+    }
+    
+    return { isValid: true };
+  };
+
+  const validateKYC = (kyc: string): { isValid: boolean; error?: string } => {
+    if (!kyc.trim()) {
+      return { isValid: false, error: 'KYC/CIF Number is required' };
+    }
+    
+    if (kyc.length < 8) {
+      return { isValid: false, error: 'KYC/CIF Number must be at least 8 characters long' };
+    }
+    
+    if (kyc.length > 20) {
+      return { isValid: false, error: 'KYC/CIF Number must not exceed 20 characters' };
+    }
+    
+    // Check for valid format: should start with letters followed by numbers
+    // Common KYC formats: KYC202400001, CKYC12345678, etc.
+    if (!/^[A-Za-z]{2,4}[0-9]{4,16}$/.test(kyc)) {
+      return { isValid: false, error: 'KYC/CIF Number must start with 2-4 letters followed by 4-16 digits (e.g., KYC202400001)' };
+    }
+    
+    // Check for sequential numbers (basic validation)
+    const numberPart = kyc.replace(/^[A-Za-z]+/, '');
+    if (/^(0+|1+|2+|3+|4+|5+|6+|7+|8+|9+)$/.test(numberPart)) {
+      return { isValid: false, error: 'KYC/CIF Number cannot contain only repeated digits' };
+    }
+    
+    return { isValid: true };
+  };
+
+  // Address validation
+  const validateAddress = (address: string, fieldName: string, isRequired: boolean = true): { isValid: boolean; error?: string } => {
+    // Check if field is empty or only spaces
+    if (!address || !address.trim()) {
+      return isRequired ? { isValid: false, error: `${fieldName} is required` } : { isValid: true };
+    }
+    
+    // Check if field contains only spaces or has leading/trailing spaces (not allowed)
+    if (/^\s+$/.test(address)) {
+      return { isValid: false, error: `${fieldName} cannot contain only spaces` };
+    }
+    
+    // Check for leading or trailing spaces
+    if (address.trim() !== address) {
+      return { isValid: false, error: `${fieldName} cannot have leading or trailing spaces` };
+    }
+    
+    if (address.length < 3) {
+      return { isValid: false, error: `${fieldName} must be at least 3 characters long` };
+    }
+    
+    if (address.length > 100) {
+      return { isValid: false, error: `${fieldName} must not exceed 100 characters` };
+    }
+    
+    // Only allow alphanumeric characters, spaces, '/', '&', ',' and '.'
+    if (!/^[a-zA-Z0-9\s/&,.]+$/.test(address)) {
+      return { isValid: false, error: `${fieldName} can only contain letters, numbers, spaces, '/', '&', ',' and '.' symbols` };
+    }
+    
+    return { isValid: true };
+  };
+
+  // Real-time validation handlers
+  const createFieldValidator = (fieldName: string, validator: (value: string) => { isValid: boolean; error?: string }, formatter?: (value: string) => string) => {
+    return (value: string) => {
+      const formattedValue = formatter ? formatter(value) : value;
+      
+      // Update form data
+      if (fieldName.includes('.')) {
+        const [parent, child] = fieldName.split('.');
+        setFormData(prev => ({
+          ...prev,
+          [parent]: {
+            ...prev[parent as keyof ClientFormData] as any,
+            [child]: formattedValue
+          }
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [fieldName]: formattedValue
+        }));
+      }
+      
+      // Clear existing error first
+      if (errors[fieldName as keyof typeof errors]) {
+        setErrors(prev => ({
+          ...prev,
+          [fieldName]: ''
+        }));
+      }
+      
+      // Perform real-time validation
+      if (formattedValue.trim() || fieldName === 'kycNumber' || fieldName === 'firstName' || fieldName === 'lastName' || fieldName === 'addressLine1' || fieldName === 'pincode') {
+        const validation = validator(formattedValue);
+        if (!validation.isValid) {
+          setErrors(prev => ({
+            ...prev,
+            [fieldName]: validation.error || `Invalid ${fieldName}`
+          }));
+        }
+      }
+    };
+  };
+
+  // Create specific field handlers
+  const handleKYCChange = createFieldValidator('kycNumber', validateKYC, (value) => value.toUpperCase());
+  const handleFirstNameChange = createFieldValidator('firstName', (value) => validateName(value));
+  const handleLastNameChange = createFieldValidator('lastName', (value) => validateName(value));
+  const handleEmailChange = createFieldValidator('email', validateEmail);
+  
+  // Address field handlers (these need special handling for nested structure)
+  const handleAddressLine1Change = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      address: { ...prev.address, addressLine1: value }
+    }));
+    
+    // Clear existing error first
+    if (errors.addressLine1) {
+      setErrors(prev => ({ ...prev, addressLine1: '' }));
+    }
+    
+    // Always validate Address Line 1 since it's mandatory
+    const validation = validateAddress(value, 'Address Line 1', true);
+    if (!validation.isValid) {
+      setErrors(prev => ({ ...prev, addressLine1: validation.error || 'Invalid address line 1' }));
+    }
+  };
+  
+  const handleAddressLine2Change = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      address: { ...prev.address, addressLine2: value }
+    }));
+    
+    // Clear existing error first
+    if (errors.addressLine2) {
+      setErrors(prev => ({ ...prev, addressLine2: '' }));
+    }
+    
+    // Validate Address Line 2 if user has entered anything (optional but validated when filled)
+    // Always validate if there's any content, including spaces
+    if (value.length > 0) {
+      const validation = validateAddress(value, 'Address Line 2', false);
+      if (!validation.isValid) {
+        setErrors(prev => ({ ...prev, addressLine2: validation.error || 'Invalid address line 2' }));
+      }
+    }
+  };
+  
+  const handleAddressLine3Change = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      address: { ...prev.address, addressLine3: value }
+    }));
+    
+    // Clear existing error first
+    if (errors.addressLine3) {
+      setErrors(prev => ({ ...prev, addressLine3: '' }));
+    }
+    
+    // Validate Address Line 3 if user has entered anything (optional but validated when filled)
+    // Always validate if there's any content, including spaces
+    if (value.length > 0) {
+      const validation = validateAddress(value, 'Address Line 3', false);
+      if (!validation.isValid) {
+        setErrors(prev => ({ ...prev, addressLine3: validation.error || 'Invalid address line 3' }));
+      }
+    }
+  };
+  
+  const handlePincodeChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      address: { ...prev.address, pincode: value }
+    }));
+    
+    if (errors.pincode) {
+      setErrors(prev => ({ ...prev, pincode: '' }));
+    }
+    
+    if (value.trim()) {
+      const validation = validatePincode(value);
+      if (!validation.isValid) {
+        setErrors(prev => ({ ...prev, pincode: validation.error || 'Invalid pincode' }));
+      }
+    }
   };
 
   // Form handlers
@@ -217,26 +544,122 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
       [field]: value
     }));
     
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+    // Real-time validation for name fields
+    if (field === 'firstName' || field === 'lastName' || field === 'middleName') {
+      const newErrors: Record<string, string> = { ...errors };
+      
+      if (field === 'firstName') {
+        if (!value.trim()) {
+          newErrors.firstName = 'First Name cannot be empty.';
+        } else if (!validateName(value)) {
+          if (value.length > 50) {
+            newErrors.firstName = 'First Name must not exceed 50 characters.';
+          } else {
+            newErrors.firstName = 'First Name must contain only letters.';
+          }
+        } else {
+          delete newErrors.firstName;
+        }
+      } else if (field === 'lastName') {
+        if (!value.trim()) {
+          newErrors.lastName = 'Last Name cannot be empty.';
+        } else if (!validateName(value)) {
+          if (value.length > 50) {
+            newErrors.lastName = 'Last Name must not exceed 50 characters.';
+          } else {
+            newErrors.lastName = 'Last Name must contain only letters.';
+          }
+        } else {
+          delete newErrors.lastName;
+        }
+      } else if (field === 'middleName') {
+        // Middle name is optional, but if provided, must follow same validation rules
+        if (value && value.trim()) {
+          // If user enters something, validate it with same rules as first/last name
+          if (!validateName(value)) {
+            if (value.length > 50) {
+              newErrors.middleName = 'Middle Name must not exceed 50 characters.';
+            } else {
+              newErrors.middleName = 'Middle Name must contain only letters.';
+            }
+          } else {
+            delete newErrors.middleName; // Valid input
+          }
+        } else {
+          // Empty is allowed for middle name (optional field)
+          delete newErrors.middleName;
+        }
+      }
+      
+      setErrors(newErrors);
+    } else {
+      // Clear error when user starts typing for non-name fields
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
     }
   };
 
   const handleAddressChange = (field: keyof Address, value: string) => {
+    // Use specific handlers for address fields with validation
+    if (field === 'addressLine1') {
+      handleAddressLine1Change(value);
+      return;
+    } else if (field === 'addressLine2') {
+      handleAddressLine2Change(value);
+      return;
+    } else if (field === 'addressLine3') {
+      handleAddressLine3Change(value);
+      return;
+    } else if (field === 'pincode') {
+      handlePincodeChange(value);
+      return;
+    }
+    
+    // For other address fields (state, district, country)
     setFormData(prev => ({
       ...prev,
-      address: { ...prev.address, [field]: value }
+      address: {
+        ...prev.address,
+        [field]: value
+      }
     }));
   };
 
   const handlePhoneChange = (index: number, field: keyof PhoneNumber, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      phoneNumbers: prev.phoneNumbers.map((phone, i) => 
-        i === index ? { ...phone, [field]: value } : phone
-      )
-    }));
+    const updatedPhones = [...formData.phoneNumbers];
+    
+    // If changing type to 'primary', set all other phones to 'secondary'
+    if (field === 'type' && value === 'primary') {
+      updatedPhones.forEach((phone, i) => {
+        if (i !== index) {
+          updatedPhones[i] = { ...phone, type: 'secondary' };
+        }
+      });
+    }
+    
+    updatedPhones[index] = { ...updatedPhones[index], [field]: value };
+    setFormData(prev => ({ ...prev, phoneNumbers: updatedPhones }));
+    
+    // Real-time validation for phone number field
+    if (field === 'number') {
+      const phoneValidation = validatePhone(value);
+      const errorKey = `phone_${index}`;
+      
+      if (errors[errorKey as keyof typeof errors]) {
+        setErrors(prev => ({
+          ...prev,
+          [errorKey]: ''
+        }));
+      }
+      
+      if (value.trim() && !phoneValidation.isValid) {
+        setErrors(prev => ({
+          ...prev,
+          [errorKey]: phoneValidation.error || 'Invalid phone number'
+        }));
+      }
+    }
   };
 
   const addPhoneNumber = () => {
@@ -264,43 +687,165 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Basic validation
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.kycNumber.trim()) newErrors.kycNumber = 'KYC number is required';
+    // Name validation
+    const firstNameValidation = validateName(formData.firstName);
+    if (!firstNameValidation.isValid) {
+      newErrors.firstName = firstNameValidation.error || 'Invalid first name';
+    }
+    
+    const lastNameValidation = validateName(formData.lastName);
+    if (!lastNameValidation.isValid) {
+      newErrors.lastName = lastNameValidation.error || 'Invalid last name';
+    }
+    
+    // KYC/CIF Number validation (required)
+    const kycValidation = validateKYC(formData.kycNumber);
+    if (!kycValidation.isValid) {
+      newErrors.kycNumber = kycValidation.error || 'Invalid KYC/CIF Number';
+    }
     
     // Address validation
-    if (!formData.address.addressLine1.trim()) newErrors.addressLine1 = 'Address line 1 is required';
+    const addressLine1Validation = validateAddress(formData.address.addressLine1, 'Address Line 1', true);
+    if (!addressLine1Validation.isValid) {
+      newErrors.addressLine1 = addressLine1Validation.error || 'Invalid address line 1';
+    }
+    
+    if (formData.address.addressLine2) {
+      const addressLine2Validation = validateAddress(formData.address.addressLine2, 'Address Line 2', false);
+      if (!addressLine2Validation.isValid) {
+        newErrors.addressLine2 = addressLine2Validation.error || 'Invalid address line 2';
+      }
+    }
+    
+    if (formData.address.addressLine3) {
+      const addressLine3Validation = validateAddress(formData.address.addressLine3, 'Address Line 3', false);
+      if (!addressLine3Validation.isValid) {
+        newErrors.addressLine3 = addressLine3Validation.error || 'Invalid address line 3';
+      }
+    }
+    
     if (!formData.address.state) newErrors.state = 'State is required';
     if (!formData.address.district) newErrors.district = 'District is required';
-    if (!formData.address.pincode.trim()) {
-      newErrors.pincode = 'Pincode is required';
-    } else if (!validatePincode(formData.address.pincode)) {
-      newErrors.pincode = 'Invalid pincode format';
+    
+    const pincodeValidation = validatePincode(formData.address.pincode);
+    if (!pincodeValidation.isValid) {
+      newErrors.pincode = pincodeValidation.error || 'Invalid pincode';
     }
 
     // Phone validation
     formData.phoneNumbers.forEach((phone, index) => {
-      if (!phone.number.trim()) {
-        newErrors[`phone-${index}`] = 'Phone number is required';
-      } else if (!validatePhone(phone.number)) {
-        newErrors[`phone-${index}`] = 'Invalid phone number format';
+      const phoneValidation = validatePhone(phone.number);
+      if (!phoneValidation.isValid) {
+        newErrors[`phone_${index}` as keyof typeof newErrors] = phoneValidation.error || 'Invalid phone number';
       }
     });
 
-    // Email validation (if provided)
-    if (formData.email && !validateEmail(formData.email)) {
-      newErrors.email = 'Invalid email format';
+    // Email validation (optional)
+    if (formData.email) {
+      const emailValidation = validateEmail(formData.email);
+      if (!emailValidation.isValid) {
+        newErrors.email = emailValidation.error || 'Invalid email format';
+      }
     }
 
-    // PAN validation (if provided)
-    if (formData.panCard?.number && !validatePAN(formData.panCard.number)) {
-      newErrors.panCard = 'Invalid PAN format (ABCDE1234F)';
+    // PAN validation (optional - only validate if provided)
+    const panValidation = validatePAN(formData.panCard?.number || '');
+    if (!panValidation.isValid) {
+      newErrors.panCard = panValidation.error || 'Invalid PAN format';
     }
 
-    // Aadhaar validation (if provided)
-    if (formData.aadhaarCard?.number && !validateAadhaar(formData.aadhaarCard.number)) {
-      newErrors.aadhaarCard = 'Invalid Aadhaar format';
+    // Aadhaar validation (optional - only validate if provided)
+    const aadhaarValidation = validateAadhaar(formData.aadhaarCard?.number || '');
+    if (!aadhaarValidation.isValid) {
+      newErrors.aadhaarCard = aadhaarValidation.error || 'Invalid Aadhaar format';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateCurrentStep = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (currentStep === 1) {
+      // First Name validation (required)
+      if (!formData.firstName.trim()) {
+        newErrors.firstName = 'First Name cannot be empty.';
+      } else if (!validateName(formData.firstName)) {
+        if (formData.firstName.length > 50) {
+          newErrors.firstName = 'First Name must not exceed 50 characters.';
+        } else {
+          newErrors.firstName = 'First Name must contain only letters.';
+        }
+      }
+
+      // Middle Name validation (optional but must be valid if provided)
+      if (formData.middleName && formData.middleName.length > 0) {
+        if (!validateName(formData.middleName.trim())) {
+          if (formData.middleName.trim().length > 50) {
+            newErrors.middleName = 'Middle Name must not exceed 50 characters.';
+          } else {
+            newErrors.middleName = 'Middle Name must contain only letters.';
+          }
+        }
+      }
+
+      // Last Name validation (required)
+      if (!formData.lastName.trim()) {
+        newErrors.lastName = 'Last Name cannot be empty.';
+      } else if (!validateName(formData.lastName)) {
+        if (formData.lastName.length > 50) {
+          newErrors.lastName = 'Last Name must not exceed 50 characters.';
+        } else {
+          newErrors.lastName = 'Last Name must contain only letters.';
+        }
+      }
+
+      // KYC/CIF Number validation (required)
+      const kycValidation = validateKYC(formData.kycNumber);
+      if (!kycValidation.isValid) {
+        newErrors.kycNumber = kycValidation.error || 'Invalid KYC/CIF Number';
+      }
+    } else if (currentStep === 2) {
+      if (!formData.address.addressLine1.trim()) newErrors.addressLine1 = 'Address line 1 is required';
+      if (!formData.address.state) newErrors.state = 'State is required';
+      if (!formData.address.district) newErrors.district = 'District is required';
+      if (!formData.address.pincode.trim()) {
+        newErrors.pincode = 'Pincode is required';
+      } else if (!validatePincode(formData.address.pincode)) {
+        newErrors.pincode = 'Invalid pincode format';
+      }
+      
+      // Phone number validation - validate only if phone numbers are provided
+      formData.phoneNumbers.forEach((phone, index) => {
+        if (phone.number.trim()) {
+          const phoneValidation = validatePhone(phone.number);
+          if (!phoneValidation.isValid) {
+            newErrors[`phone_${index}`] = phoneValidation.error || 'Invalid phone number format';
+          }
+        }
+      });
+    } else if (currentStep === 3) {
+      // Step 3 is KYC Documents - no required fields, all are optional
+      // Clear any existing errors for step 3 to allow progression
+      // PAN and Aadhaar validation is handled in real-time and form submission
+      // Phone numbers are validated in step 2, not step 3
+      
+      // Ensure no validation errors block progression from step 3
+      // Only validate PAN and Aadhaar if they have values, but don't block progression
+      if (formData.panCard?.number && formData.panCard.number.trim()) {
+        const panValidation = validatePAN(formData.panCard.number);
+        if (!panValidation.isValid) {
+          newErrors.panCard = panValidation.error || 'Invalid PAN format';
+        }
+      }
+      
+      if (formData.aadhaarCard?.number && formData.aadhaarCard.number.trim()) {
+        const aadhaarValidation = validateAadhaar(formData.aadhaarCard.number);
+        if (!aadhaarValidation.isValid) {
+          newErrors.aadhaarCard = aadhaarValidation.error || 'Invalid Aadhaar format';
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -309,13 +854,79 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
+    
+    if (validateCurrentStep()) {
+      // Filter out empty phone numbers to prevent server errors
+      const validPhoneNumbers = formData.phoneNumbers.filter(phone => 
+        phone.number && phone.number.trim() !== ''
+      );
+      
+      // Clean up PAN and Aadhaar data - send undefined if empty
+      const cleanPanCard = formData.panCard?.number && formData.panCard.number.trim() 
+        ? formData.panCard 
+        : undefined;
+      
+      const cleanAadhaarCard = formData.aadhaarCard?.number && formData.aadhaarCard.number.trim() 
+        ? formData.aadhaarCard 
+        : undefined;
+      
+      // Clean up email - send undefined if empty
+      const cleanEmail = formData.email && formData.email.trim() ? formData.email : undefined;
+      
+      // Send only valid phone numbers - let server handle empty array
+      // Note: Server currently requires at least one phone number
+      const phoneNumbers = validPhoneNumbers;
+      
+      // For new clients, automatically set status to "invite_now"
+      const submitData = mode === 'add' 
+        ? { 
+            ...formData, 
+            phoneNumbers,
+            panCard: cleanPanCard,
+            aadhaarCard: cleanAadhaarCard,
+            email: cleanEmail,
+            status: 'invite_now' as const 
+          }
+        : { 
+            ...formData, 
+            phoneNumbers,
+            panCard: cleanPanCard,
+            aadhaarCard: cleanAadhaarCard,
+            email: cleanEmail
+          };
+      
+      console.log('Submitting client data:', submitData);
+      console.log('Phone numbers after filtering:', validPhoneNumbers);
+      
+      onSubmit(submitData);
+    } else {
+      console.log('Form validation failed on final step');
+      console.log('Current errors:', errors);
     }
   };
 
-  const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1);
+  const nextStep = (e?: React.MouseEvent) => {
+    // Explicitly prevent any form submission behavior
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Prevent any form submission when navigating between steps
+    if (currentStep < 4) {
+      // For step 3 (KYC Documents), skip validation and just navigate
+      // since all fields are optional
+      if (currentStep === 3) {
+        console.log('Tab 3: Direct navigation to Tab 4');
+        setCurrentStep(4);
+        return;
+      } else {
+        // For other steps, validate before proceeding
+        if (validateCurrentStep()) {
+          setCurrentStep(currentStep + 1);
+        }
+      }
+    }
   };
 
   const prevStep = () => {
@@ -360,7 +971,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                     type="text"
                     id="firstName"
                     value={formData.firstName}
-                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    onChange={(e) => handleFirstNameChange(e.target.value)}
                     className={errors.firstName ? 'error' : ''}
                   />
                   {errors.firstName && <span className="error-text">{errors.firstName}</span>}
@@ -373,7 +984,9 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                     id="middleName"
                     value={formData.middleName || ''}
                     onChange={(e) => handleInputChange('middleName', e.target.value)}
+                    className={errors.middleName ? 'error' : ''}
                   />
+                  {errors.middleName && <span className="error-text">{errors.middleName}</span>}
                 </div>
 
                 <div className="form-group">
@@ -382,7 +995,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                     type="text"
                     id="lastName"
                     value={formData.lastName}
-                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    onChange={(e) => handleLastNameChange(e.target.value)}
                     className={errors.lastName ? 'error' : ''}
                   />
                   {errors.lastName && <span className="error-text">{errors.lastName}</span>}
@@ -391,45 +1004,39 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="kycNumber">KYC Number *</label>
+                  <label htmlFor="kycNumber">KYC/CIF Number *</label>
                   <input
                     type="text"
                     id="kycNumber"
                     value={formData.kycNumber}
-                    onChange={(e) => handleInputChange('kycNumber', e.target.value)}
+                    onChange={(e) => handleKYCChange(e.target.value)}
                     className={errors.kycNumber ? 'error' : ''}
                     placeholder="KYC202400001"
+                    maxLength={20}
+                    style={{
+                      textTransform: 'uppercase'
+                    }}
                   />
                   {errors.kycNumber && <span className="error-text">{errors.kycNumber}</span>}
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="email">Email Address</label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={formData.email || ''}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={errors.email ? 'error' : ''}
-                    placeholder="client@example.com"
-                  />
-                  {errors.email && <span className="error-text">{errors.email}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="status">Status *</label>
-                  <select
-                    id="status"
-                    value={formData.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
-                  >
-                    {CLIENT_STATUSES.map(status => (
-                      <option key={status.value} value={status.value}>
-                        {status.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Status field only visible when editing existing clients */}
+                {mode === 'edit' && (
+                  <div className="form-group">
+                    <label htmlFor="status">Status *</label>
+                    <select
+                      id="status"
+                      value={formData.status}
+                      onChange={(e) => handleInputChange('status', e.target.value)}
+                    >
+                      {CLIENT_STATUSES.map(status => (
+                        <option key={status.value} value={status.value}>
+                          {status.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -461,9 +1068,11 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                       type="text"
                       id="addressLine2"
                       value={formData.address.addressLine2 || ''}
-                      onChange={(e) => handleAddressChange('addressLine2', e.target.value)}
+                      onChange={(e) => handleAddressLine2Change(e.target.value)}
+                      className={errors.addressLine2 ? 'error' : ''}
                       placeholder="Near Temple"
                     />
+                    {errors.addressLine2 && <span className="error-text">{errors.addressLine2}</span>}
                   </div>
 
                   <div className="form-group">
@@ -472,9 +1081,11 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                       type="text"
                       id="addressLine3"
                       value={formData.address.addressLine3 || ''}
-                      onChange={(e) => handleAddressChange('addressLine3', e.target.value)}
+                      onChange={(e) => handleAddressLine3Change(e.target.value)}
+                      className={errors.addressLine3 ? 'error' : ''}
                       placeholder="Sector 5"
                     />
+                    {errors.addressLine3 && <span className="error-text">{errors.addressLine3}</span>}
                   </div>
                 </div>
 
@@ -533,6 +1144,22 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
               </div>
 
               <div className="form-section">
+                <h4>Contact Information</h4>
+                <div className="form-group">
+                  <label htmlFor="email">Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={formData.email || ''}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    className={errors.email ? 'error' : ''}
+                    placeholder="client@example.com"
+                  />
+                  {errors.email && <span className="error-text">{errors.email}</span>}
+                </div>
+              </div>
+
+              <div className="form-section">
                 <h4>Phone Numbers</h4>
                 {formData.phoneNumbers.map((phone, index) => (
                   <div key={phone.id} className="phone-entry">
@@ -548,7 +1175,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                       </div>
 
                       <div className="form-group">
-                        <label>Phone Number *</label>
+                        <label>Phone Number</label>
                         <input
                           type="text"
                           value={phone.number}
@@ -612,10 +1239,25 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                       type="text"
                       id="panNumber"
                       value={formData.panCard?.number || ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        panCard: { ...prev.panCard!, number: e.target.value.toUpperCase() }
-                      }))}
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase();
+                        setFormData(prev => ({
+                          ...prev,
+                          panCard: { ...prev.panCard!, number: value }
+                        }));
+                        
+                        // Real-time PAN validation
+                        if (errors.panCard) {
+                          setErrors(prev => ({ ...prev, panCard: '' }));
+                        }
+                        
+                        if (value.trim()) {
+                          const panValidation = validatePAN(value);
+                          if (!panValidation.isValid) {
+                            setErrors(prev => ({ ...prev, panCard: panValidation.error || 'Invalid PAN' }));
+                          }
+                        }
+                      }}
                       className={errors.panCard ? 'error' : ''}
                       placeholder="ABCDE1234F"
                       maxLength={10}
@@ -628,7 +1270,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                     <input
                       type="file"
                       id="panImage"
-                      accept="image/*"
+                      accept="image/*,.pdf,application/pdf"
                       onChange={(e) => {
                         // Handle file upload
                         console.log('PAN file selected:', e.target.files?.[0]);
@@ -647,10 +1289,25 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                       type="text"
                       id="aadhaarNumber"
                       value={formData.aadhaarCard?.number || ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        aadhaarCard: { ...prev.aadhaarCard!, number: e.target.value }
-                      }))}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          aadhaarCard: { ...prev.aadhaarCard!, number: value }
+                        }));
+                        
+                        // Real-time Aadhaar validation
+                        if (errors.aadhaarCard) {
+                          setErrors(prev => ({ ...prev, aadhaarCard: '' }));
+                        }
+                        
+                        if (value.trim()) {
+                          const aadhaarValidation = validateAadhaar(value);
+                          if (!aadhaarValidation.isValid) {
+                            setErrors(prev => ({ ...prev, aadhaarCard: aadhaarValidation.error || 'Invalid Aadhaar' }));
+                          }
+                        }
+                      }}
                       className={errors.aadhaarCard ? 'error' : ''}
                       placeholder="1234 5678 9012 or XXXX-XXXX-1234"
                     />
@@ -662,7 +1319,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                     <input
                       type="file"
                       id="aadhaarImage"
-                      accept="image/*"
+                      accept="image/*,.pdf,application/pdf"
                       onChange={(e) => {
                         // Handle file upload
                         console.log('Aadhaar file selected:', e.target.files?.[0]);
@@ -724,7 +1381,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
             )}
             
             {currentStep < 4 ? (
-              <button type="button" onClick={nextStep} className="btn-primary">
+              <button type="button" onClick={(e) => nextStep(e)} className="btn-primary">
                 Next
               </button>
             ) : (

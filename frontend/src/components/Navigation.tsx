@@ -17,6 +17,12 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange 
       description: 'Client management'
     },
     {
+      id: 'shops',
+      label: 'Shop',
+      icon: '🏪',
+      description: 'Shop management'
+    },
+    {
       id: 'dashboard',
       label: 'Accounts',
       icon: '📊',

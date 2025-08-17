@@ -54,9 +54,8 @@ const validateClientData = (clientData: any): { isValid: boolean; errors: string
   if (!clientData.address?.district?.trim()) errors.push('District is required');
   if (!clientData.address?.pincode || !validatePincode(clientData.address.pincode)) errors.push('Valid pincode is required');
 
-  if (!clientData.phoneNumbers || !Array.isArray(clientData.phoneNumbers) || clientData.phoneNumbers.length === 0) {
-    errors.push('At least one phone number is required');
-  } else {
+  // Phone numbers are optional, but if provided, they must be valid
+  if (clientData.phoneNumbers && Array.isArray(clientData.phoneNumbers) && clientData.phoneNumbers.length > 0) {
     clientData.phoneNumbers.forEach((phone: any, index: number) => {
       if (!phone.number || !validatePhone(phone.number)) {
         errors.push(`Invalid phone number at position ${index + 1}`);
@@ -106,11 +105,13 @@ interface User {
   role: string;
   phone?: string;
   company?: string;
-  status?: 'active' | 'inactive' | 'pending';
+  status?: 'invite_now' | 'pending' | 'active' | 'suspended' | 'inactive';
   joinDate?: string;
   lastLogin?: string;
   accountBalance?: number;
   profilePicture?: string;
+  createdAt?: string;
+  lastModifiedAt?: string;
 }
 
 // Generate mock data (simplified for space)
@@ -119,7 +120,7 @@ const generateMockUsers = (): User[] => {
   const firstNames = ['Aarav', 'Priya', 'Rajesh', 'Sunita', 'Vivaan', 'Ananya', 'Aditya', 'Fatima'];
   const lastNames = ['Sharma', 'Patel', 'Singh', 'Reddy', 'Gupta', 'Kumar', 'Yadav', 'Nair'];
   const companies = ['Mumbai Branch', 'Delhi Branch', 'Bangalore Branch', 'Chennai Branch'];
-  const statuses: ('active' | 'inactive' | 'pending')[] = ['active', 'inactive', 'pending'];
+  const statuses: ('invite_now' | 'pending' | 'active' | 'suspended')[] = ['invite_now', 'pending', 'active', 'suspended'];
 
   for (let i = 1; i <= 500; i++) {
     const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
@@ -163,7 +164,20 @@ router.get('/', async (req: Request, res: Response) => {
     const startIndex = (page - 1) * limit;
     let filteredUsers = mockUsers;
     
-    if (search) {
+    // Extract filter and advanced search parameters
+    const statusFilter = req.query.status as string;
+    const dateCreatedFrom = req.query.dateCreatedFrom as string;
+    const dateCreatedTo = req.query.dateCreatedTo as string;
+    const dateModifiedFrom = req.query.dateModifiedFrom as string;
+    const dateModifiedTo = req.query.dateModifiedTo as string;
+    const aadhaarNumber = req.query.aadhaarNumber as string;
+    const addressLine1 = req.query.addressLine1 as string;
+    const panNumber = req.query.panNumber as string;
+    const emailId = req.query.emailId as string;
+    const mobileNumber = req.query.mobileNumber as string;
+    
+    // Apply name search filter (minimum 3 characters required)
+    if (search && search.length >= 3) {
       const searchLower = search.toLowerCase();
       filteredUsers = filteredUsers.filter(user => 
         `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchLower) ||
@@ -171,6 +185,116 @@ router.get('/', async (req: Request, res: Response) => {
         user.company?.toLowerCase().includes(searchLower)
       );
     }
+
+    // Apply status filter
+    if (statusFilter) {
+      const statusArray = statusFilter.split(',');
+      filteredUsers = filteredUsers.filter(user => 
+        statusArray.includes(user.status)
+      );
+    }
+
+    // Apply date created filter
+    if (dateCreatedFrom || dateCreatedTo) {
+      filteredUsers = filteredUsers.filter(user => {
+        const userDate = new Date(user.createdAt || '2024-01-01');
+        const fromDate = dateCreatedFrom ? new Date(dateCreatedFrom) : new Date('1900-01-01');
+        const toDate = dateCreatedTo ? new Date(dateCreatedTo + 'T23:59:59') : new Date('2100-12-31');
+        return userDate >= fromDate && userDate <= toDate;
+      });
+    }
+
+    // Apply date modified filter
+    if (dateModifiedFrom || dateModifiedTo) {
+      filteredUsers = filteredUsers.filter(user => {
+        const userDate = new Date(user.lastModifiedAt || user.createdAt || '2024-01-01');
+        const fromDate = dateModifiedFrom ? new Date(dateModifiedFrom) : new Date('1900-01-01');
+        const toDate = dateModifiedTo ? new Date(dateModifiedTo + 'T23:59:59') : new Date('2100-12-31');
+        return userDate >= fromDate && userDate <= toDate;
+      });
+    }
+
+    // Apply advanced search filters
+    if (aadhaarNumber) {
+      const aadhaarLower = aadhaarNumber.toLowerCase();
+      filteredUsers = filteredUsers.filter(user => {
+        // Generate mock Aadhaar number based on user ID
+        const mockAadhaar = `${user.id.toString().padStart(4, '0')}-${user.id.toString().padStart(4, '0')}-${user.id.toString().padStart(4, '0')}`;
+        return mockAadhaar.toLowerCase().includes(aadhaarLower);
+      });
+    }
+
+    if (addressLine1) {
+      const addressLower = addressLine1.toLowerCase();
+      filteredUsers = filteredUsers.filter(user => {
+        // Use existing address helper or generate mock address
+        const addresses = [
+          '123, MG Road', '456, Park Street', '789, Brigade Road', 
+          '321, Commercial Street', '654, Linking Road', '987, Church Street',
+          '147, Residency Road', '258, Infantry Road', '369, Richmond Road'
+        ];
+        const mockAddress = addresses[user.id % addresses.length];
+        return mockAddress.toLowerCase().includes(addressLower);
+      });
+    }
+
+    if (panNumber) {
+      const panLower = panNumber.toLowerCase();
+      filteredUsers = filteredUsers.filter(user => {
+        // Generate mock PAN number
+        const panNumbers = [
+          'ABCDE1234F', 'FGHIJ5678K', 'KLMNO9012P', 'PQRST3456U', 'UVWXY7890Z',
+          'BCDEF2345G', 'GHIJK6789L', 'LMNOP0123Q', 'QRSTU4567V', 'VWXYZ8901A'
+        ];
+        const mockPan = panNumbers[user.id % panNumbers.length];
+        return mockPan.toLowerCase().includes(panLower);
+      });
+    }
+
+    if (emailId) {
+      const emailLower = emailId.toLowerCase();
+      filteredUsers = filteredUsers.filter(user => 
+        user.email?.toLowerCase().includes(emailLower)
+      );
+    }
+
+    if (mobileNumber) {
+      filteredUsers = filteredUsers.filter(user => {
+        // Generate mock mobile number
+        const mobiles = [
+          '7227349632', '9007548029', '8120479482', '9876543210', '8765432109',
+          '7654321098', '9543210987', '8432109876', '7321098765', '9210987654'
+        ];
+        const mockMobile = `+91 ${mobiles[user.id % mobiles.length]}`;
+        return mockMobile.includes(mobileNumber);
+      });
+    }
+    
+    // Apply sorting: Status priority first, then alphabetical by name
+    filteredUsers = filteredUsers.sort((a, b) => {
+      // Define status priority order
+      const statusPriority: { [key: string]: number } = {
+        'invite_now': 1,
+        'pending': 2,
+        'active': 3,
+        'suspended': 4,
+        'inactive': 4 // Treat inactive same as suspended
+      };
+      
+      // Get status priorities (default to 5 for unknown statuses)
+      const statusA = statusPriority[a.status] || 5;
+      const statusB = statusPriority[b.status] || 5;
+      
+      // First sort by status priority
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+      
+      // If status is the same, sort alphabetically by full name
+      const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+      const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
     
     const totalRecords = filteredUsers.length;
     const totalPages = Math.ceil(totalRecords / limit);

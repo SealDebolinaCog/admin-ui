@@ -174,11 +174,20 @@
   gap: 0.75rem;
 }
 
-.nav-bottom-items {
+.nav-bottom {
+  margin-top: auto;
+  padding: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
+}
+
+.nav-bottom-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
 }
 
 .nav-bottom-items .nav-item {
@@ -241,9 +250,9 @@
 }
 
 .nav-logout {
-  background: rgba(231, 76, 60, 0.2);
-  border: 1px solid rgba(231, 76, 60, 0.3);
-  color: #e74c3c;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
   padding: 0.75rem;
   border-radius: 8px;
   cursor: pointer;
@@ -251,16 +260,21 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  justify-content: center;
+  justify-content: flex-start;
+  width: calc(100% - 1rem);
+  margin: 0.25rem 0.5rem;
+  backdrop-filter: blur(10px);
 }
 
 .nav-logout:hover {
-  background: rgba(231, 76, 60, 0.3);
-  border-color: rgba(231, 76, 60, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
 }
 
 .logout-icon {
   font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .logout-text {
@@ -269,6 +283,8 @@
   white-space: nowrap;
   opacity: 1;
   transition: opacity 0.3s ease;
+  flex-shrink: 0;
+  color: #ffffff;
 }
 
 .navigation.collapsed .logout-text {

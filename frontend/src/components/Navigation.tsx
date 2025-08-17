@@ -11,6 +11,12 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange 
 
   const navigationItems = [
     {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: '📊',
+      description: 'Overview and statistics'
+    },
+    {
       id: 'users',
       label: 'Clients',
       icon: '👥',
@@ -18,15 +24,15 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange 
     },
     {
       id: 'shops',
-      label: 'Shop',
+      label: 'Shops',
       icon: '🏪',
       description: 'Shop management'
     },
     {
-      id: 'dashboard',
+      id: 'accounts',
       label: 'Accounts',
-      icon: '📊',
-      description: 'Account overview and management'
+      icon: '🏦',
+      description: 'Bank account management'
     },
     {
       id: 'analytics',
@@ -97,7 +103,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange 
         ))}
       </div>
 
-      <div className="nav-footer">
+      <div className="nav-bottom">
         <div className="nav-bottom-items">
           {bottomNavigationItems.map((item) => (
             <button

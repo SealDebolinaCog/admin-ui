@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import ShopForm from './ShopForm';
 import './UserManagement.css'; // Reuse the same CSS for consistent styling
 
 interface Shop {
@@ -10,6 +11,7 @@ interface Shop {
   phone?: string;
   address?: string;
   category: string;
+  shopType?: string; // Added shopType
   status?: 'active' | 'pending' | 'suspended' | 'inactive';
   registrationDate?: string;
   lastActivity?: string;
@@ -45,6 +47,11 @@ const ShopManagement: React.FC = () => {
   const [searchFilter, setSearchFilter] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   
+  // New state variables for shop actions
+  const [showViewShop, setShowViewShop] = useState(false);
+  const [showEditShop, setShowEditShop] = useState(false);
+  const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(20);
@@ -56,8 +63,7 @@ const ShopManagement: React.FC = () => {
   const [filters, setFilters] = useState({
     status: [] as string[],
     category: [] as string[],
-    registrationDate: { from: '', to: '' },
-    lastActivity: { from: '', to: '' }
+    shopType: [] as string[]
   });
   const [appliedFilters, setAppliedFilters] = useState(filters);
 
@@ -80,47 +86,21 @@ const ShopManagement: React.FC = () => {
     'Purba Medinipur', 'Purulia', 'South 24 Parganas', 'Uttar Dinajpur'
   ];
 
-  // Validation functions (similar to ClientForm)
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePhone = (phone: string) => {
-    const phoneRegex = /^[6-9]\d{9}$/;
-    return {
-      isValid: phoneRegex.test(phone),
-      error: phoneRegex.test(phone) ? null : 'Phone number must be 10 digits starting with 6-9'
-    };
-  };
-
-  const validatePincode = (pincode: string) => {
-    const pincodeRegex = /^[1-9][0-9]{5}$/;
-    return pincodeRegex.test(pincode);
-  };
-
-  const validateAddress = (address: string) => {
-    const addressRegex = /^[a-zA-Z0-9\s\/&,.]+$/;
-    return {
-      isValid: addressRegex.test(address) && address.trim().length > 0,
-      error: !addressRegex.test(address) ? 'Address can only contain letters, numbers, spaces, /, &, comma, and period' : 
-             address.trim().length === 0 ? 'Address cannot be empty' : null
-    };
-  };
-
   // Generate mock shops data
   const generateMockShops = (): Shop[] => {
     const shops: Shop[] = [];
     const shopNames = ['Tech Store', 'Fashion Hub', 'Food Corner', 'Book World', 'Sports Zone', 'Home Decor', 'Electronics Plus', 'Beauty Salon'];
     const ownerNames = ['Rajesh Kumar', 'Priya Sharma', 'Amit Patel', 'Sunita Singh', 'Vivek Gupta', 'Ananya Reddy', 'Rohit Yadav', 'Kavya Nair'];
-    const categories = ['electronics', 'fashion', 'food', 'books', 'sports', 'home', 'beauty', 'retail'];
-    const statuses: ('active' | 'pending' | 'suspended' | 'inactive')[] = ['active', 'pending', 'suspended', 'inactive'];
+    const categories = ['electronics', 'clothing', 'food', 'healthcare', 'automotive', 'beauty', 'home', 'sports', 'books', 'jewelry', 'pharmaceuticals', 'hardware', 'furniture', 'other'];
+    const shopTypes = ['retail', 'wholesale', 'ecommerce', 'service', 'restaurant', 'other'];
+    const statuses: ('active' | 'suspended')[] = ['active', 'suspended'];
     const addresses = ['MG Road, Mumbai', 'Park Street, Kolkata', 'Brigade Road, Bangalore', 'Connaught Place, Delhi'];
 
     for (let i = 1; i <= 100; i++) {
       const shopName = `${shopNames[Math.floor(Math.random() * shopNames.length)]} ${i}`;
       const ownerName = ownerNames[Math.floor(Math.random() * ownerNames.length)];
       const category = categories[Math.floor(Math.random() * categories.length)];
+      const shopType = shopTypes[Math.floor(Math.random() * shopTypes.length)];
       
       shops.push({
         id: i,
@@ -130,6 +110,7 @@ const ShopManagement: React.FC = () => {
         phone: `${Math.floor(Math.random() * 4) + 6}${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}`,
         address: addresses[Math.floor(Math.random() * addresses.length)],
         category,
+        shopType,
         status: statuses[Math.floor(Math.random() * statuses.length)],
         registrationDate: `2023-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
         lastActivity: Math.random() > 0.3 ? `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}` : undefined,
@@ -180,6 +161,23 @@ const ShopManagement: React.FC = () => {
         );
       }
 
+      // Apply shopType filter
+      if (appliedFilters.shopType.length > 0) {
+        filteredShops = filteredShops.filter(shop => 
+          appliedFilters.shopType.includes(shop.shopType || 'retail')
+        );
+      }
+
+      // Sort shops: first by status (active first), then alphabetically by shop name
+      filteredShops.sort((a, b) => {
+        // First sort by status: active comes first
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (a.status !== 'active' && b.status === 'active') return 1;
+        
+        // Then sort alphabetically by shop name
+        return a.shopName.localeCompare(b.shopName);
+      });
+
       // Pagination
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
@@ -197,23 +195,40 @@ const ShopManagement: React.FC = () => {
     }
   }, [currentPage, recordsPerPage, searchFilter, appliedFilters]);
 
+  // Load shops on component mount
   useEffect(() => {
     fetchShops();
   }, [fetchShops]);
 
   // Helper functions
   const getStatusDisplay = (status: string) => {
-    switch (status) {
-      case 'active': return 'Active';
-      case 'pending': return 'Pending';
-      case 'suspended': return 'Suspended';
-      case 'inactive': return 'Inactive';
-      default: return 'Active';
-    }
+    const statusMap: { [key: string]: string } = {
+      'active': 'Active',
+      'pending': 'Pending',
+      'suspended': 'Suspended',
+      'inactive': 'Inactive'
+    };
+    return statusMap[status] || status;
   };
 
   const getCategoryDisplay = (category: string) => {
-    return category.charAt(0).toUpperCase() + category.slice(1);
+    const categoryMap: { [key: string]: string } = {
+      'electronics': 'Electronics',
+      'clothing': 'Clothing & Fashion',
+      'food': 'Food & Beverages',
+      'healthcare': 'Healthcare',
+      'automotive': 'Automotive',
+      'beauty': 'Beauty & Personal Care',
+      'home': 'Home & Garden',
+      'sports': 'Sports & Outdoors',
+      'books': 'Books & Stationery',
+      'jewelry': 'Jewelry & Accessories',
+      'pharmaceuticals': 'Pharmaceuticals',
+      'hardware': 'Hardware & Tools',
+      'furniture': 'Furniture',
+      'other': 'Other'
+    };
+    return categoryMap[category] || category;
   };
 
   const getShopInitials = (shopName: string) => {
@@ -221,83 +236,9 @@ const ShopManagement: React.FC = () => {
   };
 
   // Form handlers
-  const validateShopForm = () => {
-    const newErrors: {[key: string]: string} = {};
-
-    if (currentStep === 1) {
-      // Step 1: Shop Details validation
-      if (!shopFormData.shopName.trim()) {
-        newErrors.shopName = 'Shop name is required';
-      } else if (!/^[a-zA-Z0-9\s&.,-]+$/.test(shopFormData.shopName)) {
-        newErrors.shopName = 'Shop name can only contain letters, numbers, spaces, &, ., comma, and -';
-      }
-
-      if (!shopFormData.ownerName.trim()) {
-        newErrors.ownerName = 'Owner name is required';
-      } else if (!/^[a-zA-Z\s]+$/.test(shopFormData.ownerName)) {
-        newErrors.ownerName = 'Owner name must contain only letters and spaces';
-      }
-
-      if (!shopFormData.category) {
-        newErrors.category = 'Category is required';
-      }
-    } else if (currentStep === 2) {
-      // Step 2: Address and Contact validation
-      if (!shopFormData.address.addressLine1.trim()) {
-        newErrors.addressLine1 = 'Address line 1 is required';
-      } else {
-        const addressValidation = validateAddress(shopFormData.address.addressLine1);
-        if (!addressValidation.isValid) {
-          newErrors.addressLine1 = addressValidation.error || 'Invalid address format';
-        }
-      }
-
-      if (shopFormData.address.addressLine2.trim()) {
-        const addressValidation = validateAddress(shopFormData.address.addressLine2);
-        if (!addressValidation.isValid) {
-          newErrors.addressLine2 = addressValidation.error || 'Invalid address format';
-        }
-      }
-
-      if (shopFormData.address.addressLine3.trim()) {
-        const addressValidation = validateAddress(shopFormData.address.addressLine3);
-        if (!addressValidation.isValid) {
-          newErrors.addressLine3 = addressValidation.error || 'Invalid address format';
-        }
-      }
-
-      if (!shopFormData.address.state) newErrors.state = 'State is required';
-      if (!shopFormData.address.district) newErrors.district = 'District is required';
-      if (!shopFormData.address.pincode.trim()) {
-        newErrors.pincode = 'Pincode is required';
-      } else if (!validatePincode(shopFormData.address.pincode)) {
-        newErrors.pincode = 'Invalid pincode format';
-      }
-
-      if (!shopFormData.email.trim()) {
-        newErrors.email = 'Email is required';
-      } else if (!validateEmail(shopFormData.email)) {
-        newErrors.email = 'Invalid email format';
-      }
-
-      // Phone number validation
-      if (shopFormData.phone.trim()) {
-        const phoneValidation = validatePhone(shopFormData.phone);
-        if (!phoneValidation.isValid) {
-          newErrors.phone = phoneValidation.error || 'Invalid phone number format';
-        }
-      }
-    }
-
-    setShopFormErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const nextStep = () => {
-    if (validateShopForm()) {
-      if (currentStep < 2) {
-        setCurrentStep(currentStep + 1);
-      }
+    if (currentStep < 2) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -305,24 +246,20 @@ const ShopManagement: React.FC = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const handleAddShop = () => {
-    if (!validateShopForm()) {
-      setError('Please fix all validation errors before submitting');
-      return;
-    }
-
+  const handleAddShop = (shopData: any) => {
     const shop: Shop = {
       id: Date.now(),
-      shopName: shopFormData.shopName,
-      ownerName: shopFormData.ownerName,
-      email: shopFormData.email,
-      phone: shopFormData.phone.trim() || undefined,
-      address: `${shopFormData.address.addressLine1}, ${shopFormData.address.district}, ${shopFormData.address.state} ${shopFormData.address.pincode}`,
-      category: shopFormData.category,
-      status: 'active',
-      registrationDate: new Date().toISOString().split('T')[0],
+      shopName: shopData.shopName,
+      ownerName: shopData.ownerName,
+      email: shopData.ownerEmail,
+      phone: shopData.ownerPhone,
+      address: `${shopData.address.addressLine1}, ${shopData.address.district}, ${shopData.address.state} ${shopData.address.pincode}`,
+      category: shopData.category,
+      shopType: shopData.shopType, // Added shopType
+      status: shopData.status || 'active',
+      registrationDate: shopData.registrationDate || new Date().toISOString().split('T')[0],
       lastActivity: new Date().toISOString().split('T')[0],
-      revenue: Math.floor(Math.random() * 500000) + 50000,
+      revenue: shopData.annualRevenue || Math.floor(Math.random() * 500000) + 50000,
       rating: Math.floor(Math.random() * 5) + 1
     };
 
@@ -364,6 +301,71 @@ const ShopManagement: React.FC = () => {
     }
   };
 
+  // View shop details
+  const viewShop = (shop: Shop) => {
+    setSelectedShop(shop);
+    setShowViewShop(true);
+  };
+
+  // Edit shop
+  const editShop = (shop: Shop) => {
+    setSelectedShop(shop);
+    // Close view modal if it's open, then open edit modal
+    if (showViewShop) {
+      setShowViewShop(false);
+    }
+    setShowEditShop(true);
+  };
+
+  // Suspend/Activate shop
+  const toggleShopStatus = (shopId: number) => {
+    const shop = mockShops.find(s => s.id === shopId);
+    if (shop) {
+      const newStatus = shop.status === 'active' ? 'suspended' : 'active';
+      const action = newStatus === 'suspended' ? 'suspend' : 'activate';
+      
+      if (window.confirm(`Are you sure you want to ${action} this shop?`)) {
+        shop.status = newStatus;
+        fetchShops();
+      }
+    }
+  };
+
+  // Handle edit shop submission
+  const handleEditShop = (shopData: any) => {
+    if (selectedShop) {
+      const index = mockShops.findIndex(shop => shop.id === selectedShop.id);
+      if (index > -1) {
+        mockShops[index] = {
+          ...mockShops[index],
+          shopName: shopData.shopName,
+          ownerName: shopData.ownerName,
+          category: shopData.category,
+          status: shopData.status || mockShops[index].status,
+          email: shopData.ownerEmail,
+          phone: shopData.ownerPhone,
+          address: `${shopData.address.addressLine1}, ${shopData.address.district}, ${shopData.address.state} ${shopData.address.pincode}`
+        };
+        fetchShops();
+        setShowEditShop(false);
+        
+        // Update selectedShop with new data and show view modal
+        const updatedShop = mockShops[index];
+        setSelectedShop(updatedShop);
+        setShowViewShop(true);
+      }
+    }
+  };
+
+  // Close all shop modals and reset state
+  const closeAllShopModals = () => {
+    setShowViewShop(false);
+    setShowEditShop(false);
+    setSelectedShop(null);
+    setCurrentStep(1);
+    setShopFormErrors({});
+  };
+
   // Filter functions
   const handleFilterChange = (filterType: string, value: any) => {
     setFilters(prev => ({ ...prev, [filterType]: value }));
@@ -378,8 +380,7 @@ const ShopManagement: React.FC = () => {
     const emptyFilters = {
       status: [] as string[],
       category: [] as string[],
-      registrationDate: { from: '', to: '' },
-      lastActivity: { from: '', to: '' }
+      shopType: [] as string[]
     };
     setFilters(emptyFilters);
     setAppliedFilters(emptyFilters);
@@ -390,8 +391,7 @@ const ShopManagement: React.FC = () => {
     let count = 0;
     if (appliedFilters.status.length > 0) count++;
     if (appliedFilters.category.length > 0) count++;
-    if (appliedFilters.registrationDate.from || appliedFilters.registrationDate.to) count++;
-    if (appliedFilters.lastActivity.from || appliedFilters.lastActivity.to) count++;
+    if (appliedFilters.shopType.length > 0) count++;
     return count;
   };
 
@@ -496,7 +496,7 @@ const ShopManagement: React.FC = () => {
             className={`filter-toggle-btn ${getActiveFilterCount() > 0 ? 'has-filters' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
           >
-            🔍 Filters {getActiveFilterCount() > 0 && `(${getActiveFilterCount()})`}
+            �� Filters {getActiveFilterCount() > 0 && `(${getActiveFilterCount()})`}
           </button>
           <button 
             className="add-user-btn"
@@ -529,7 +529,7 @@ const ShopManagement: React.FC = () => {
             <div className="filter-group">
               <label className="filter-label">📊 Status</label>
               <div className="filter-options">
-                {['active', 'pending', 'suspended', 'inactive'].map(status => (
+                {['active', 'suspended'].map(status => (
                   <label key={status} className="checkbox-label">
                     <input
                       type="checkbox"
@@ -542,9 +542,35 @@ const ShopManagement: React.FC = () => {
                       }}
                     />
                     <span className="checkbox-text">
-                      {status === 'active' ? '🟢 Active' : 
-                       status === 'pending' ? '🟡 Pending' : 
-                       status === 'suspended' ? '🟠 Suspended' : '🔴 Inactive'}
+                      {status === 'active' ? '🟢 Active' : '🟠 Suspended'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Shop Type Filter */}
+            <div className="filter-group">
+              <label className="filter-label">🏪 Shop Type</label>
+              <div className="filter-options">
+                {['retail', 'wholesale', 'ecommerce', 'service', 'restaurant', 'other'].map(type => (
+                  <label key={type} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={filters.shopType.includes(type)}
+                      onChange={(e) => {
+                        const newType = e.target.checked
+                          ? [...filters.shopType, type]
+                          : filters.shopType.filter((t: string) => t !== type);
+                        handleFilterChange('shopType', newType);
+                      }}
+                    />
+                    <span className="checkbox-text">
+                      {type === 'retail' ? 'Retail Store' :
+                       type === 'wholesale' ? 'Wholesale Business' :
+                       type === 'ecommerce' ? 'E-commerce' :
+                       type === 'service' ? 'Service Provider' :
+                       type === 'restaurant' ? 'Restaurant/Food' : 'Other'}
                     </span>
                   </label>
                 ))}
@@ -555,7 +581,7 @@ const ShopManagement: React.FC = () => {
             <div className="filter-group">
               <label className="filter-label">🏷️ Category</label>
               <div className="filter-options">
-                {['electronics', 'fashion', 'food', 'books', 'sports', 'home', 'beauty', 'retail'].map(category => (
+                {['electronics', 'clothing', 'food', 'healthcare', 'automotive', 'beauty', 'home', 'sports', 'books', 'jewelry', 'pharmaceuticals', 'hardware', 'furniture', 'other'].map(category => (
                   <label key={category} className="checkbox-label">
                     <input
                       type="checkbox"
@@ -596,274 +622,124 @@ const ShopManagement: React.FC = () => {
 
       {/* Add Shop Form */}
       {showAddForm && (
-        <div className="client-form-overlay">
-          <div className="client-form-modal">
-            <div className="client-form-header">
-              <h2>Add New Shop</h2>
-              <button 
-                className="close-btn"
-                onClick={() => {
-                  setShowAddForm(false);
-                  setCurrentStep(1);
-                  setShopFormErrors({});
-                }}
-              >
-                ×
-              </button>
+        <ShopForm
+          isOpen={showAddForm}
+          onClose={() => {
+            setShowAddForm(false);
+            setCurrentStep(1);
+            setShopFormErrors({});
+          }}
+          onSubmit={handleAddShop}
+          mode="add"
+        />
+      )}
+
+      {/* Edit Shop Form */}
+      {showEditShop && selectedShop && (
+        <ShopForm
+          isOpen={showEditShop}
+          onClose={() => {
+            setShowEditShop(false);
+            // Return to view mode instead of clearing selectedShop
+            setShowViewShop(true);
+          }}
+          onSubmit={handleEditShop}
+          mode="edit"
+          initialData={{
+            shopName: selectedShop.shopName,
+            ownerName: selectedShop.ownerName,
+            category: selectedShop.category,
+            status: selectedShop.status as any,
+            ownerEmail: selectedShop.email,
+            ownerPhone: selectedShop.phone || '',
+            address: {
+              addressLine1: selectedShop.address?.split(',')[0] || '',
+              addressLine2: '',
+              addressLine3: '',
+              state: selectedShop.address?.split(',')[1]?.trim() || 'West Bengal',
+              district: selectedShop.address?.split(',')[1]?.trim() || 'Nadia',
+              pincode: selectedShop.address?.split(',')[2]?.trim() || '741501',
+              country: 'India'
+            }
+          }}
+        />
+      )}
+
+      {/* View Shop Modal */}
+      {showViewShop && selectedShop && (
+        <div className="shop-form-overlay">
+          <div className="shop-form-modal">
+            <div className="shop-form-header">
+              <h2>Shop Details</h2>
+              <button className="close-button" onClick={closeAllShopModals}>×</button>
             </div>
             
-            <div className="form-steps">
-              <div className={`step ${currentStep >= 1 ? 'active' : ''}`}>
-                <span>1</span> Shop Details
-              </div>
-              <div className={`step ${currentStep >= 2 ? 'active' : ''}`}>
-                <span>2</span> Address & Contact
-              </div>
-            </div>
-
-            <form className="client-form">
-              {/* Step 1: Shop Details */}
-              {currentStep === 1 && (
-                <div className="form-step">
-                  <h3>Shop Details</h3>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="shopName">Shop Name *</label>
-                      <input
-                        type="text"
-                        id="shopName"
-                        value={shopFormData.shopName}
-                        onChange={(e) => setShopFormData({...shopFormData, shopName: e.target.value})}
-                        className={shopFormErrors.shopName ? 'error' : ''}
-                      />
-                      {shopFormErrors.shopName && <span className="error-text">{shopFormErrors.shopName}</span>}
-                    </div>
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="ownerName">Owner Name *</label>
-                      <input
-                        type="text"
-                        id="ownerName"
-                        value={shopFormData.ownerName}
-                        onChange={(e) => setShopFormData({...shopFormData, ownerName: e.target.value})}
-                        className={shopFormErrors.ownerName ? 'error' : ''}
-                      />
-                      {shopFormErrors.ownerName && <span className="error-text">{shopFormErrors.ownerName}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="category">Category *</label>
-                      <select
-                        id="category"
-                        value={shopFormData.category}
-                        onChange={(e) => setShopFormData({...shopFormData, category: e.target.value})}
-                        className={shopFormErrors.category ? 'error' : ''}
-                      >
-                        <option value="electronics">Electronics</option>
-                        <option value="fashion">Fashion</option>
-                        <option value="food">Food</option>
-                        <option value="books">Books</option>
-                        <option value="sports">Sports</option>
-                        <option value="home">Home</option>
-                        <option value="beauty">Beauty</option>
-                        <option value="retail">Retail</option>
-                      </select>
-                      {shopFormErrors.category && <span className="error-text">{shopFormErrors.category}</span>}
-                    </div>
-                  </div>
+            <div className="shop-form" style={{ padding: '32px' }}>
+              <div className="form-section">
+                <h4>Shop Information</h4>
+                <div className="detail-row">
+                  <span className="detail-label">Shop Name:</span>
+                  <span className="detail-value">{selectedShop.shopName}</span>
                 </div>
-              )}
-
-              {/* Step 2: Address & Contact */}
-              {currentStep === 2 && (
-                <div className="form-step">
-                  <h3>Address & Contact Information</h3>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="addressLine1">Address Line 1 *</label>
-                      <input
-                        type="text"
-                        id="addressLine1"
-                        value={shopFormData.address.addressLine1}
-                        onChange={(e) => setShopFormData({
-                          ...shopFormData,
-                          address: {...shopFormData.address, addressLine1: e.target.value}
-                        })}
-                        className={shopFormErrors.addressLine1 ? 'error' : ''}
-                      />
-                      {shopFormErrors.addressLine1 && <span className="error-text">{shopFormErrors.addressLine1}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="addressLine2">Address Line 2</label>
-                      <input
-                        type="text"
-                        id="addressLine2"
-                        value={shopFormData.address.addressLine2}
-                        onChange={(e) => setShopFormData({
-                          ...shopFormData,
-                          address: {...shopFormData.address, addressLine2: e.target.value}
-                        })}
-                        className={shopFormErrors.addressLine2 ? 'error' : ''}
-                      />
-                      {shopFormErrors.addressLine2 && <span className="error-text">{shopFormErrors.addressLine2}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="addressLine3">Address Line 3</label>
-                      <input
-                        type="text"
-                        id="addressLine3"
-                        value={shopFormData.address.addressLine3}
-                        onChange={(e) => setShopFormData({
-                          ...shopFormData,
-                          address: {...shopFormData.address, addressLine3: e.target.value}
-                        })}
-                        className={shopFormErrors.addressLine3 ? 'error' : ''}
-                      />
-                      {shopFormErrors.addressLine3 && <span className="error-text">{shopFormErrors.addressLine3}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group half-width">
-                      <label htmlFor="state">State *</label>
-                      <select
-                        id="state"
-                        value={shopFormData.address.state}
-                        onChange={(e) => setShopFormData({
-                          ...shopFormData,
-                          address: {...shopFormData.address, state: e.target.value}
-                        })}
-                        className={shopFormErrors.state ? 'error' : ''}
-                      >
-                        {indianStates.map(state => (
-                          <option key={state} value={state}>{state}</option>
-                        ))}
-                      </select>
-                      {shopFormErrors.state && <span className="error-text">{shopFormErrors.state}</span>}
-                    </div>
-
-                    <div className="form-group half-width">
-                      <label htmlFor="district">District *</label>
-                      <select
-                        id="district"
-                        value={shopFormData.address.district}
-                        onChange={(e) => setShopFormData({
-                          ...shopFormData,
-                          address: {...shopFormData.address, district: e.target.value}
-                        })}
-                        className={shopFormErrors.district ? 'error' : ''}
-                      >
-                        {westBengalDistricts.map(district => (
-                          <option key={district} value={district}>{district}</option>
-                        ))}
-                      </select>
-                      {shopFormErrors.district && <span className="error-text">{shopFormErrors.district}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group half-width">
-                      <label htmlFor="pincode">Pincode *</label>
-                      <input
-                        type="text"
-                        id="pincode"
-                        value={shopFormData.address.pincode}
-                        onChange={(e) => setShopFormData({
-                          ...shopFormData,
-                          address: {...shopFormData.address, pincode: e.target.value}
-                        })}
-                        className={shopFormErrors.pincode ? 'error' : ''}
-                      />
-                      {shopFormErrors.pincode && <span className="error-text">{shopFormErrors.pincode}</span>}
-                    </div>
-
-                    <div className="form-group half-width">
-                      <label htmlFor="country">Country</label>
-                      <input
-                        type="text"
-                        id="country"
-                        value={shopFormData.address.country}
-                        readOnly
-                        className="readonly"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="email">Email Address *</label>
-                      <input
-                        type="email"
-                        id="email"
-                        value={shopFormData.email}
-                        onChange={(e) => setShopFormData({...shopFormData, email: e.target.value})}
-                        className={shopFormErrors.email ? 'error' : ''}
-                      />
-                      {shopFormErrors.email && <span className="error-text">{shopFormErrors.email}</span>}
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="phone">Phone Number</label>
-                      <input
-                        type="text"
-                        id="phone"
-                        value={shopFormData.phone}
-                        onChange={(e) => setShopFormData({...shopFormData, phone: e.target.value})}
-                        className={shopFormErrors.phone ? 'error' : ''}
-                        placeholder="Enter 10-digit phone number"
-                      />
-                      {shopFormErrors.phone && <span className="error-text">{shopFormErrors.phone}</span>}
-                    </div>
-                  </div>
+                <div className="detail-row">
+                  <span className="detail-label">Category:</span>
+                  <span className="detail-value">{getCategoryDisplay(selectedShop.category)}</span>
                 </div>
-              )}
+                <div className="detail-row">
+                  <span className="detail-label">Status:</span>
+                  <span className="detail-value">
+                    <span className={`status-badge ${selectedShop.status || 'active'}`}>
+                      {selectedShop.status === 'active' ? '🟢 Active' : '🟠 Suspended'}
+                    </span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <h4>Owner Information</h4>
+                <div className="detail-row">
+                  <span className="detail-label">Owner Name:</span>
+                  <span className="detail-value">{selectedShop.ownerName}</span>
+                </div>
+                {selectedShop.email && (
+                  <div className="detail-row">
+                    <span className="detail-label">Email:</span>
+                    <span className="detail-value">{selectedShop.email}</span>
+                  </div>
+                )}
+                {selectedShop.phone && (
+                  <div className="detail-row">
+                    <span className="detail-label">Phone:</span>
+                    <span className="detail-value">{selectedShop.phone}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="form-section">
+                <h4>Address</h4>
+                <div className="detail-row">
+                  <span className="detail-label">Address:</span>
+                  <span className="detail-value">{selectedShop.address}</span>
+                </div>
+              </div>
 
               <div className="form-actions">
                 <button 
                   type="button" 
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setCurrentStep(1);
-                    setShopFormErrors({});
-                  }} 
-                  className="cancel-btn"
+                  onClick={() => editShop(selectedShop)}
+                  className="btn-primary"
                 >
-                  Cancel
+                  ✏️ Edit Shop
                 </button>
-                
-                <div className="nav-buttons">
-                  {currentStep > 1 && (
-                    <button type="button" onClick={prevStep} className="prev-btn">
-                      Previous
-                    </button>
-                  )}
-                  
-                  {currentStep < 2 ? (
-                    <button type="button" onClick={nextStep} className="next-btn">
-                      Next
-                    </button>
-                  ) : (
-                    <button type="button" onClick={handleAddShop} className="submit-btn">
-                      Create Shop
-                    </button>
-                  )}
-                </div>
+                <button 
+                  type="button" 
+                  onClick={closeAllShopModals}
+                  className="btn-cancel"
+                >
+                  Close
+                </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
@@ -908,20 +784,23 @@ const ShopManagement: React.FC = () => {
                 <button 
                   className="action-btn view-btn"
                   title="View shop details"
+                  onClick={() => viewShop(shop)}
                 >
                   👁️
                 </button>
                 <button 
                   className="action-btn edit-btn"
                   title="Edit shop"
+                  onClick={() => editShop(shop)}
                 >
                   ✏️
                 </button>
                 <button 
                   className="action-btn suspend-btn"
-                  title="Suspend shop"
+                  title={shop.status === 'active' ? 'Suspend shop' : 'Activate shop'}
+                  onClick={() => toggleShopStatus(shop.id)}
                 >
-                  ⏸️
+                  {shop.status === 'active' ? '⏸️' : '▶️'}
                 </button>
                 <button 
                   className="action-btn delete-btn"
@@ -991,20 +870,23 @@ const ShopManagement: React.FC = () => {
                       <button 
                         className="table-action-btn view-btn"
                         title="View shop details"
+                        onClick={() => viewShop(shop)}
                       >
                         👁️
                       </button>
                       <button 
                         className="table-action-btn edit-btn"
                         title="Edit shop"
+                        onClick={() => editShop(shop)}
                       >
                         ✏️
                       </button>
                       <button 
                         className="table-action-btn suspend-btn"
-                        title="Suspend shop"
+                        title={shop.status === 'active' ? 'Suspend shop' : 'Activate shop'}
+                        onClick={() => toggleShopStatus(shop.id)}
                       >
-                        ⏸️
+                        {shop.status === 'active' ? '⏸️' : '▶️'}
                       </button>
                       <button 
                         className="table-action-btn delete-btn"

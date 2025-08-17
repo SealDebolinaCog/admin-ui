@@ -1,20 +1,22 @@
 .App {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
 }
 
-.App-main {
+.main-content {
   flex: 1;
   margin-left: 280px;
+  padding: 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background-color: #f8fafc;
   transition: margin-left 0.3s ease;
+  overflow-x: hidden;
 }
 
-/* Adjust main content when navigation is collapsed */
-.App:has(.navigation.collapsed) .App-main {
-  margin-left: 70px;
+/* When sidebar is collapsed */
+.navigation.collapsed + .main-content {
+  margin-left: 80px;
 }
 
 /* Content sections */

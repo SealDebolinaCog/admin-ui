@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import Navigation from './components/Navigation';
+import './App.css';
 import Dashboard from './components/Dashboard';
 import UserManagement from './components/UserManagement';
 import ShopManagement from './components/ShopManagement';
-import './App.css';
+import AccountsManagement from './components/AccountsManagement';
+import Navigation from './components/Navigation';
 
 function App() {
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -16,54 +17,8 @@ function App() {
         return <UserManagement />;
       case 'shops':
         return <ShopManagement />;
-      case 'settings':
-        return (
-          <div className="content-section">
-            <h1>Settings</h1>
-            <p>System configuration and preferences</p>
-            <div className="coming-soon">
-              <span>⚙️</span>
-              <h3>Coming Soon</h3>
-              <p>Settings panel is under development</p>
-            </div>
-          </div>
-        );
-      case 'analytics':
-        return (
-          <div className="content-section">
-            <h1>Analytics</h1>
-            <p>Reports and data insights</p>
-            <div className="coming-soon">
-              <span>📈</span>
-              <h3>Coming Soon</h3>
-              <p>Analytics dashboard is under development</p>
-            </div>
-          </div>
-        );
-      case 'notifications':
-        return (
-          <div className="content-section">
-            <h1>Notifications</h1>
-            <p>System alerts and messages</p>
-            <div className="coming-soon">
-              <span>🔔</span>
-              <h3>Coming Soon</h3>
-              <p>Notification center is under development</p>
-            </div>
-          </div>
-        );
-      case 'profile':
-        return (
-          <div className="content-section">
-            <h1>Profile</h1>
-            <p>User profile and account settings</p>
-            <div className="coming-soon">
-              <span>👤</span>
-              <h3>Coming Soon</h3>
-              <p>Profile management is under development</p>
-            </div>
-          </div>
-        );
+      case 'accounts':
+        return <AccountsManagement />;
       default:
         return <Dashboard />;
     }
@@ -71,11 +26,8 @@ function App() {
 
   return (
     <div className="App">
-      <Navigation 
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-      />
-      <main className="App-main">
+      <Navigation activeSection={activeSection} onSectionChange={setActiveSection} />
+      <main className="main-content">
         {renderContent()}
       </main>
     </div>

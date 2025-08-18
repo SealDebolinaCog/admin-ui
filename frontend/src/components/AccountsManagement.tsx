@@ -6,17 +6,17 @@ import AccountForm from './AccountForm';
 interface Account {
   id: number;
   accountNumber: string;
-  accountHolderName: string;
-  accountType: 'savings' | 'current' | 'fixed' | 'recurring' | 'business';
-  bankName: string;
+  accountOwnershipType: 'single' | 'joint';
+  accountHolderNames: string[];
+  institutionType: 'bank' | 'post_office';
+  accountType: 'savings' | 'current' | 'fixed' | 'recurring' | 'business' | 'recurring_deposit' | '1td' | '2td' | '3td' | '4td' | '5td' | 'national_savings_certificate' | 'kishan_vikash_patra' | 'monthly_income_scheme';
+  institutionName: string;
   branchCode: string;
-  ifscCode: string;
-  balance: number;
-  status: 'active' | 'suspended' | 'closed';
+  ifscCode?: string; // Only for banks
+  tenure: number;
+  status: 'active' | 'suspended' | 'fined' | 'matured' | 'closed';
   openingDate: string;
   lastTransactionDate: string;
-  email: string;
-  phone: string;
   address: string;
   nomineeName?: string;
   nomineeRelation?: string;
@@ -44,11 +44,12 @@ const AccountsManagement: React.FC = () => {
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
+    institutionType: '',
     accountType: '',
     status: '',
-    bankName: '',
+    institutionName: '',
     kycStatus: '',
-    balanceRange: ''
+    tenureRange: ''
   });
 
   // Mock data for accounts
@@ -56,17 +57,16 @@ const AccountsManagement: React.FC = () => {
     {
       id: 1,
       accountNumber: '1234567890',
-      accountHolderName: 'Rajesh Kumar',
-      accountType: 'savings',
-      bankName: 'State Bank of India',
-      branchCode: 'SBI001',
-      ifscCode: 'SBIN0001234',
-      balance: 125000,
+      accountOwnershipType: 'joint',
+      accountHolderNames: ['Rajesh Kumar', 'Priya Kumar'],
+      institutionType: 'post_office',
+      accountType: 'national_savings_certificate',
+      institutionName: 'Aranghata Post Office',
+      branchCode: '102024',
+      tenure: 60,
       status: 'active',
       openingDate: '2020-03-15',
       lastTransactionDate: '2024-01-20',
-      email: 'rajesh.kumar@email.com',
-      phone: '9876543210',
       address: '123 Main Street, Kolkata, West Bengal 700001',
       nomineeName: 'Priya Kumar',
       nomineeRelation: 'Spouse',
@@ -75,17 +75,16 @@ const AccountsManagement: React.FC = () => {
     {
       id: 2,
       accountNumber: '0987654321',
-      accountHolderName: 'Priya Sharma',
-      accountType: 'current',
-      bankName: 'HDFC Bank',
-      branchCode: 'HDFC001',
-      ifscCode: 'HDFC0000987',
-      balance: 450000,
+      accountOwnershipType: 'joint',
+      accountHolderNames: ['Priya Sharma', 'Amit Sharma'],
+      institutionType: 'post_office',
+      accountType: 'monthly_income_scheme',
+      institutionName: 'Central Post Office',
+      branchCode: '999999',
+      tenure: 60,
       status: 'active',
       openingDate: '2019-07-22',
       lastTransactionDate: '2024-01-19',
-      email: 'priya.sharma@email.com',
-      phone: '8765432109',
       address: '456 Park Avenue, Mumbai, Maharashtra 400001',
       nomineeName: 'Amit Sharma',
       nomineeRelation: 'Father',
@@ -94,17 +93,16 @@ const AccountsManagement: React.FC = () => {
     {
       id: 3,
       accountNumber: '1122334455',
-      accountHolderName: 'Amit Patel',
-      accountType: 'business',
-      bankName: 'ICICI Bank',
-      branchCode: 'ICICI001',
-      ifscCode: 'ICIC0001122',
-      balance: 850000,
-      status: 'suspended',
+      accountOwnershipType: 'joint',
+      accountHolderNames: ['Amit Patel', 'Neha Patel'],
+      institutionType: 'post_office',
+      accountType: 'recurring_deposit',
+      institutionName: 'Aranghata Post Office',
+      branchCode: '102024',
+      tenure: 60,
+      status: 'fined',
       openingDate: '2021-11-08',
       lastTransactionDate: '2024-01-10',
-      email: 'amit.patel@business.com',
-      phone: '7654321098',
       address: '789 Business Park, Delhi, Delhi 110001',
       nomineeName: 'Neha Patel',
       nomineeRelation: 'Wife',
@@ -113,17 +111,16 @@ const AccountsManagement: React.FC = () => {
     {
       id: 4,
       accountNumber: '5566778899',
-      accountHolderName: 'Neha Singh',
-      accountType: 'fixed',
-      bankName: 'Axis Bank',
-      branchCode: 'AXIS001',
-      ifscCode: 'AXIS0005566',
-      balance: 2000000,
+      accountOwnershipType: 'joint',
+      accountHolderNames: ['Neha Singh', 'Rahul Singh'],
+      institutionType: 'post_office',
+      accountType: '2td',
+      institutionName: 'Central Post Office',
+      branchCode: '999999',
+      tenure: 24,
       status: 'active',
       openingDate: '2022-05-12',
       lastTransactionDate: '2024-01-15',
-      email: 'neha.singh@email.com',
-      phone: '6543210987',
       address: '321 Garden Road, Bangalore, Karnataka 560001',
       nomineeName: 'Rahul Singh',
       nomineeRelation: 'Brother',
@@ -132,21 +129,78 @@ const AccountsManagement: React.FC = () => {
     {
       id: 5,
       accountNumber: '9988776655',
-      accountHolderName: 'Rahul Verma',
-      accountType: 'recurring',
-      bankName: 'Kotak Mahindra Bank',
-      branchCode: 'KOTAK001',
-      ifscCode: 'KOTAK0009988',
-      balance: 75000,
-      status: 'active',
+      accountOwnershipType: 'joint',
+      accountHolderNames: ['Rahul Verma', 'Sunita Verma'],
+      institutionType: 'post_office',
+      accountType: 'recurring_deposit',
+      institutionName: 'Aranghata Post Office',
+      branchCode: '102024',
+      tenure: 60,
+      status: 'matured',
       openingDate: '2023-01-30',
       lastTransactionDate: '2024-01-18',
-      email: 'rahul.verma@email.com',
-      phone: '5432109876',
+
       address: '654 Lake View, Hyderabad, Telangana 500001',
       nomineeName: 'Sunita Verma',
       nomineeRelation: 'Mother',
       kycStatus: 'verified'
+    },
+    {
+      id: 6,
+      accountNumber: '1122334455',
+      accountOwnershipType: 'single',
+      accountHolderNames: ['Sunita Verma'],
+      institutionType: 'post_office',
+      accountType: '1td',
+      institutionName: 'Central Post Office',
+      branchCode: '999999',
+      tenure: 12,
+      status: 'active',
+      openingDate: '2022-08-15',
+      lastTransactionDate: '2024-01-22',
+
+      address: '987 Hill Road, Pune, Maharashtra 411001',
+      nomineeName: 'Rahul Verma',
+      nomineeRelation: 'Son',
+      kycStatus: 'verified'
+    },
+    {
+      id: 7,
+      accountNumber: '9988776655',
+      accountOwnershipType: 'joint',
+      accountHolderNames: ['Vikram Singh', 'Anjali Singh'],
+      institutionType: 'post_office',
+      accountType: 'kishan_vikash_patra',
+      institutionName: 'Aranghata Post Office',
+      branchCode: '102024',
+      tenure: 120,
+      status: 'active',
+      openingDate: '2023-06-10',
+      lastTransactionDate: '2024-01-21',
+
+      address: '456 Farm Road, Lucknow, Uttar Pradesh 226001',
+      nomineeName: 'Anjali Singh',
+      nomineeRelation: 'Wife',
+      kycStatus: 'verified'
+    },
+    {
+      id: 8,
+      accountNumber: '5544332211',
+      accountOwnershipType: 'single',
+      accountHolderNames: ['Meera Patel'],
+      institutionType: 'post_office',
+      accountType: '3td',
+      institutionName: 'Aranghata Post Office',
+      branchCode: '102024',
+      tenure: 36,
+      status: 'active',
+      openingDate: '2021-12-05',
+      lastTransactionDate: '2024-01-19',
+
+      address: '789 Business Street, Ahmedabad, Gujarat 380001',
+      nomineeName: 'Raj Patel',
+      nomineeRelation: 'Brother',
+      kycStatus: 'pending'
     }
   ], []);
 
@@ -160,41 +214,44 @@ const AccountsManagement: React.FC = () => {
       if (searchFilter.trim()) {
         filteredAccounts = filteredAccounts.filter(account =>
           account.accountNumber.toLowerCase().includes(searchFilter.toLowerCase()) ||
-          account.accountHolderName.toLowerCase().includes(searchFilter.toLowerCase()) ||
-          account.bankName.toLowerCase().includes(searchFilter.toLowerCase())
+          account.accountHolderNames.some(name => name.toLowerCase().includes(searchFilter.toLowerCase())) ||
+          account.institutionName.toLowerCase().includes(searchFilter.toLowerCase())
         );
       }
 
       // Apply advanced filters
+      if (filters.institutionType) {
+        filteredAccounts = filteredAccounts.filter(account => account.institutionType === filters.institutionType);
+      }
       if (filters.accountType) {
         filteredAccounts = filteredAccounts.filter(account => account.accountType === filters.accountType);
       }
       if (filters.status) {
         filteredAccounts = filteredAccounts.filter(account => account.status === filters.status);
       }
-      if (filters.bankName) {
-        filteredAccounts = filteredAccounts.filter(account => account.bankName.toLowerCase().includes(filters.bankName.toLowerCase()));
+      if (filters.institutionName) {
+        filteredAccounts = filteredAccounts.filter(account => account.institutionName.toLowerCase().includes(filters.institutionName.toLowerCase()));
       }
       if (filters.kycStatus) {
         filteredAccounts = filteredAccounts.filter(account => account.kycStatus === filters.kycStatus);
       }
-      if (filters.balanceRange) {
-        const [min, max] = filters.balanceRange.split('-').map(Number);
+      if (filters.tenureRange) {
+        const [min, max] = filters.tenureRange.split('-').map(Number);
         if (max) {
-          filteredAccounts = filteredAccounts.filter(account => account.balance >= min && account.balance <= max);
+          filteredAccounts = filteredAccounts.filter(account => account.tenure >= min && account.tenure <= max);
         } else {
-          filteredAccounts = filteredAccounts.filter(account => account.balance >= min);
+          filteredAccounts = filteredAccounts.filter(account => account.tenure >= min);
         }
       }
 
-      // Sort accounts: first by status (active first), then alphabetically by account holder name
+      // Sort accounts: first by status (active first), then alphabetically by first account holder name
       filteredAccounts.sort((a, b) => {
         // First sort by status: active comes first
         if (a.status === 'active' && b.status !== 'active') return -1;
         if (a.status !== 'active' && b.status === 'active') return 1;
 
-        // Then sort alphabetically by account holder name
-        return a.accountHolderName.localeCompare(b.accountHolderName);
+        // Then sort alphabetically by first account holder name
+        return a.accountHolderNames[0].localeCompare(b.accountHolderNames[0]);
       });
 
       setAccounts(filteredAccounts);
@@ -221,17 +278,17 @@ const AccountsManagement: React.FC = () => {
     const account: Account = {
       id: Date.now(),
       accountNumber: accountData.accountNumber,
-      accountHolderName: accountData.accountHolderName,
+      accountOwnershipType: accountData.accountOwnershipType,
+      accountHolderNames: accountData.accountHolderNames,
+      institutionType: accountData.institutionType,
       accountType: accountData.accountType,
-      bankName: accountData.bankName,
+      institutionName: accountData.institutionName,
       branchCode: accountData.branchCode,
       ifscCode: accountData.ifscCode,
-      balance: accountData.balance || 0,
+      tenure: accountData.tenure || 12,
       status: accountData.status || 'active',
       openingDate: accountData.openingDate || new Date().toISOString().split('T')[0],
       lastTransactionDate: new Date().toISOString().split('T')[0],
-      email: accountData.email,
-      phone: accountData.phone,
       address: `${accountData.address.addressLine1}, ${accountData.address.district}, ${accountData.address.state} ${accountData.address.pincode}`,
       nomineeName: accountData.nomineeName,
       nomineeRelation: accountData.nomineeRelation,
@@ -293,15 +350,15 @@ const AccountsManagement: React.FC = () => {
         mockAccounts[index] = {
           ...mockAccounts[index],
           accountNumber: accountData.accountNumber,
-          accountHolderName: accountData.accountHolderName,
+          accountOwnershipType: accountData.accountOwnershipType,
+          accountHolderNames: accountData.accountHolderNames,
+          institutionType: accountData.institutionType,
           accountType: accountData.accountType,
-          bankName: accountData.bankName,
+          institutionName: accountData.institutionName,
           branchCode: accountData.branchCode,
           ifscCode: accountData.ifscCode,
-          balance: accountData.balance || 0,
+          tenure: accountData.tenure || 12,
           status: accountData.status || mockAccounts[index].status,
-          email: accountData.email,
-          phone: accountData.phone,
           address: `${accountData.address.addressLine1}, ${accountData.address.district}, ${accountData.address.state} ${accountData.address.pincode}`,
           nomineeName: accountData.nomineeName,
           nomineeRelation: accountData.nomineeRelation
@@ -332,11 +389,12 @@ const AccountsManagement: React.FC = () => {
 
   const clearFilters = () => {
     setFilters({
+      institutionType: '',
       accountType: '',
       status: '',
-      bankName: '',
+      institutionName: '',
       kycStatus: '',
-      balanceRange: ''
+      tenureRange: ''
     });
     setCurrentPage(1);
     fetchAccounts();
@@ -349,11 +407,18 @@ const AccountsManagement: React.FC = () => {
   // Helper functions
   const getAccountTypeDisplay = (type: string) => {
     const typeMap: { [key: string]: string } = {
-      'savings': 'Savings',
-      'current': 'Current',
+      // Bank Account Types
+      'savings': 'Savings Account',
+      'current': 'Current Account',
       'fixed': 'Fixed Deposit',
       'recurring': 'Recurring Deposit',
-      'business': 'Business'
+      'business': 'Business Account',
+      // Post Office Account Types
+      'savings_certificate': 'Savings Certificate',
+      'recurring_deposit': 'Recurring Deposit',
+      'time_deposit': 'Time Deposit',
+      'monthly_income_scheme': 'Monthly Income Scheme',
+      'senior_citizen_savings': 'Senior Citizen Savings'
     };
     return typeMap[type] || type;
   };
@@ -362,6 +427,8 @@ const AccountsManagement: React.FC = () => {
     const statusMap: { [key: string]: string } = {
       'active': 'Active',
       'suspended': 'Suspended',
+      'fined': 'Fined',
+      'matured': 'Matured',
       'closed': 'Closed'
     };
     return statusMap[status] || status;
@@ -411,137 +478,277 @@ const AccountsManagement: React.FC = () => {
     <div className="users-management">
       {/* Header */}
       <div className="users-header">
-        <div className="header-content">
-          <h1>Account Management</h1>
-          <p>Manage bank accounts, view details, and monitor status</p>
-          <p style={{ fontSize: '14px', color: '#666', marginTop: '8px' }}>
-            Total Accounts: {accounts.length} | Current Page: {currentPage} | Showing: {currentAccounts.length}
-          </p>
+        <div>
+          <h1>Accounts</h1>
+          <p>Manage bank and post office accounts</p>
         </div>
         <div className="header-actions">
-          <button 
-            className="add-user-btn"
-            onClick={() => setShowAddForm(true)}
+          <div className="view-toggle">
+            <button 
+              className={`toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setViewMode('cards')}
+              title="Card View"
+            >
+              📋
+            </button>
+            <button 
+              className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setViewMode('table')}
+              title="Table View"
+            >
+              📊
+            </button>
+          </div>
+          <form 
+            className="search-input-container"
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              if (searchFilter.length >= 3) {
+                fetchAccounts();
+              }
+              
+              // Maintain focus
+              setTimeout(() => {
+                if (searchInputRef.current) {
+                  searchInputRef.current.focus();
+                }
+              }, 0);
+              
+              return false;
+            }}
           >
-            + Add Account
-          </button>
-        </div>
-      </div>
-
-      {/* Search and Filters */}
-      <div className="search-filters-container">
-        <div className="search-section">
-          <form onSubmit={handleSearch} className="search-form">
-            <div className="search-input-group">
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search by account number, holder name, or bank..."
-                value={searchFilter}
-                onChange={(e) => setSearchFilter(e.target.value)}
-                className="search-input"
-              />
-              <button type="submit" className="search-btn">
-                🔍
+            <span className="search-icon">🔍</span>
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search accounts by number or holder name (min 3 letters)..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              className="search-input"
+            />
+            {searchFilter && (
+              <button
+                onClick={() => setSearchFilter('')}
+                className="clear-search"
+                title="Clear search"
+              >
+                ✕
               </button>
-            </div>
+            )}
+            {searchFilter && searchFilter.length > 0 && searchFilter.length < 3 && (
+              <div className="search-validation-message">
+                Enter at least 3 characters to search
+              </div>
+            )}
           </form>
-        </div>
-
-        <div className="filters-section">
           <button 
-            className="filter-toggle-btn"
+            className={`filter-toggle-btn ${getActiveFilterCount() > 0 ? 'has-filters' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
           >
             🔍 Filters {getActiveFilterCount() > 0 && `(${getActiveFilterCount()})`}
           </button>
           <button 
-            className="view-toggle-btn"
-            onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+            className="add-user-btn"
+            onClick={() => setShowAddForm(true)}
           >
-            {viewMode === 'cards' ? '📊 Table' : '🃏 Cards'}
+            ➕ Add Account
           </button>
         </div>
       </div>
 
       {/* Advanced Filters */}
       {showFilters && (
-        <div className="advanced-filters">
-          <div className="filter-row">
+        <div className="filter-panel">
+          <div className="filter-panel-header">
+            <h3>🔍 Advanced Filters</h3>
+            <div className="filter-actions">
+              {getActiveFilterCount() > 0 && (
+                <button className="clear-filters-btn" onClick={clearFilters}>
+                  Clear All ({getActiveFilterCount()})
+                </button>
+              )}
+              <button className="close-filters-btn" onClick={() => setShowFilters(false)}>
+                ✕
+              </button>
+            </div>
+          </div>
+          
+          <div className="filter-content">
+            {/* Institution Type Filter */}
             <div className="filter-group">
-              <label>Account Type</label>
-              <select
-                value={filters.accountType}
-                onChange={(e) => setFilters(prev => ({ ...prev, accountType: e.target.value }))}
-              >
-                <option value="">All Types</option>
-                <option value="savings">Savings</option>
-                <option value="current">Current</option>
-                <option value="fixed">Fixed Deposit</option>
-                <option value="recurring">Recurring Deposit</option>
-                <option value="business">Business</option>
-              </select>
+              <label className="filter-label">🏛️ Institution Type</label>
+              <div className="filter-options">
+                {['bank', 'post_office'].map(institutionType => (
+                  <label key={institutionType} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={filters.institutionType === institutionType}
+                      onChange={(e) => {
+                        const newInstitutionType = e.target.checked ? institutionType : '';
+                        setFilters(prev => ({ ...prev, institutionType: newInstitutionType }));
+                      }}
+                    />
+                    <span className="checkbox-text">
+                      {institutionType === 'bank' ? '🏦 Bank' : '📮 Post Office'}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
 
+            {/* Status Filter */}
             <div className="filter-group">
-              <label>Status</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-              >
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="suspended">Suspended</option>
-                <option value="closed">Closed</option>
-              </select>
+              <label className="filter-label">📊 Status</label>
+              <div className="filter-options">
+                {['active', 'suspended', 'closed'].map(status => (
+                  <label key={status} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={filters.status === status}
+                      onChange={(e) => {
+                        const newStatus = e.target.checked ? status : '';
+                        setFilters(prev => ({ ...prev, status: newStatus }));
+                      }}
+                    />
+                    <span className="checkbox-text">
+                      {status === 'active' ? '🟢 Active' : status === 'suspended' ? '🟠 Suspended' : '🔴 Closed'}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
 
+            {/* Account Type Filter */}
             <div className="filter-group">
-              <label>Bank Name</label>
+              <label className="filter-label">🏦 Account Type</label>
+              <div className="filter-options">
+                {filters.institutionType === 'post_office' ? (
+                  // Post Office Account Types
+                  ['savings_certificate', 'recurring_deposit', 'time_deposit', 'monthly_income_scheme', 'senior_citizen_savings'].map(type => (
+                    <label key={type} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={filters.accountType === type}
+                        onChange={(e) => {
+                          const newType = e.target.checked ? type : '';
+                          setFilters(prev => ({ ...prev, accountType: newType }));
+                        }}
+                      />
+                      <span className="checkbox-text">
+                        {type === 'savings_certificate' ? 'Savings Certificate' :
+                         type === 'recurring_deposit' ? 'Recurring Deposit' :
+                         type === 'time_deposit' ? 'Time Deposit' :
+                         type === 'monthly_income_scheme' ? 'Monthly Income Scheme' :
+                         'Senior Citizen Savings'}
+                      </span>
+                    </label>
+                  ))
+                ) : filters.institutionType === 'bank' ? (
+                  // Bank Account Types
+                  ['savings', 'current', 'fixed', 'recurring', 'business'].map(type => (
+                    <label key={type} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={filters.accountType === type}
+                        onChange={(e) => {
+                          const newType = e.target.checked ? type : '';
+                          setFilters(prev => ({ ...prev, accountType: newType }));
+                        }}
+                      />
+                      <span className="checkbox-text">
+                        {type === 'savings' ? 'Savings Account' :
+                         type === 'current' ? 'Current Account' :
+                         type === 'fixed' ? 'Fixed Deposit' :
+                         type === 'recurring' ? 'Recurring Deposit' : 'Business Account'}
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  // Show all options when no institution type is selected
+                  ['savings', 'current', 'fixed', 'recurring', 'business', 'savings_certificate', 'recurring_deposit', 'time_deposit', 'monthly_income_scheme', 'senior_citizen_savings'].map(type => (
+                    <label key={type} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={filters.accountType === type}
+                        onChange={(e) => {
+                          const newType = e.target.checked ? type : '';
+                          setFilters(prev => ({ ...prev, accountType: newType }));
+                        }}
+                      />
+                      <span className="checkbox-text">
+                        {type === 'savings' ? 'Savings Account' :
+                         type === 'current' ? 'Current Account' :
+                         type === 'fixed' ? 'Fixed Deposit' :
+                         type === 'recurring' ? 'Recurring Deposit' :
+                         type === 'business' ? 'Business Account' :
+                         type === 'savings_certificate' ? 'Savings Certificate' :
+                         type === 'recurring_deposit' ? 'Recurring Deposit' :
+                         type === 'time_deposit' ? 'Time Deposit' :
+                         type === 'monthly_income_scheme' ? 'Monthly Income Scheme' :
+                         'Senior Citizen Savings'}
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* KYC Status Filter */}
+            <div className="filter-group">
+              <label className="filter-label">✅ KYC Status</label>
+              <div className="filter-options">
+                {['pending', 'verified', 'rejected'].map(kycStatus => (
+                  <label key={kycStatus} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={filters.kycStatus === kycStatus}
+                      onChange={(e) => {
+                        const newKYCStatus = e.target.checked ? kycStatus : '';
+                        setFilters(prev => ({ ...prev, kycStatus: newKYCStatus }));
+                      }}
+                    />
+                    <span className="checkbox-text">
+                      {kycStatus === 'pending' ? '🟡 Pending' : kycStatus === 'verified' ? '🟢 Verified' : '🔴 Rejected'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Institution Name Filter */}
+            <div className="filter-group">
+              <label className="filter-label">
+                {filters.institutionType === 'post_office' ? '📮 Post Office' : 
+                 filters.institutionType === 'bank' ? '🏦 Bank Name' : '🏛️ Institution Name'}
+              </label>
               <input
                 type="text"
-                placeholder="Enter bank name"
-                value={filters.bankName}
-                onChange={(e) => setFilters(prev => ({ ...prev, bankName: e.target.value }))}
+                placeholder={filters.institutionType === 'post_office' ? 'Enter post office name' : 
+                           filters.institutionType === 'bank' ? 'Enter bank name' : 'Enter institution name'}
+                value={filters.institutionName}
+                onChange={(e) => setFilters(prev => ({ ...prev, institutionName: e.target.value }))}
+                className="filter-input"
               />
             </div>
 
+            {/* Tenure Range Filter */}
             <div className="filter-group">
-              <label>KYC Status</label>
+              <label className="filter-label">⏰ Tenure Range</label>
               <select
-                value={filters.kycStatus}
-                onChange={(e) => setFilters(prev => ({ ...prev, kycStatus: e.target.value }))}
+                value={filters.tenureRange}
+                onChange={(e) => setFilters(prev => ({ ...prev, tenureRange: e.target.value }))}
+                className="filter-select"
               >
-                <option value="">All KYC Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="verified">Verified</option>
-                <option value="rejected">Rejected</option>
+                <option value="">All Tenures</option>
+                <option value="0-12">0 - 12 months</option>
+                <option value="12-24">12 - 24 months</option>
+                <option value="24-60">24 - 60 months</option>
+                <option value="60-120">60 - 120 months</option>
+                <option value="120-">120+ months</option>
               </select>
             </div>
-
-            <div className="filter-group">
-              <label>Balance Range</label>
-              <select
-                value={filters.balanceRange}
-                onChange={(e) => setFilters(prev => ({ ...prev, balanceRange: e.target.value }))}
-              >
-                <option value="">All Balances</option>
-                <option value="0-50000">₹0 - ₹50,000</option>
-                <option value="50000-200000">₹50,000 - ₹2,00,000</option>
-                <option value="200000-500000">₹2,00,000 - ₹5,00,000</option>
-                <option value="500000-1000000">₹5,00,000 - ₹10,00,000</option>
-                <option value="1000000-">₹10,00,000+</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="filter-actions">
-            <button onClick={applyFilters} className="apply-filters-btn">
-              Apply Filters
-            </button>
-            <button onClick={clearFilters} className="clear-filters-btn">
-              Clear All
-            </button>
           </div>
         </div>
       )}
@@ -571,15 +778,15 @@ const AccountsManagement: React.FC = () => {
           mode="edit"
           initialData={{
             accountNumber: selectedAccount.accountNumber,
-            accountHolderName: selectedAccount.accountHolderName,
+            accountOwnershipType: selectedAccount.accountOwnershipType,
+            accountHolderNames: selectedAccount.accountHolderNames,
+            institutionType: selectedAccount.institutionType,
             accountType: selectedAccount.accountType,
-            bankName: selectedAccount.bankName,
+            institutionName: selectedAccount.institutionName,
             branchCode: selectedAccount.branchCode,
             ifscCode: selectedAccount.ifscCode,
-            balance: selectedAccount.balance,
+            tenure: selectedAccount.tenure,
             status: selectedAccount.status as any,
-            email: selectedAccount.email,
-            phone: selectedAccount.phone,
             address: {
               addressLine1: selectedAccount.address?.split(',')[0] || '',
               addressLine2: '',
@@ -619,50 +826,62 @@ const AccountsManagement: React.FC = () => {
                   <span className="detail-label">Status:</span>
                   <span className="detail-value">
                     <span className={`status-badge ${selectedAccount.status || 'active'}`}>
-                      {selectedAccount.status === 'active' ? '🟢 Active' : selectedAccount.status === 'suspended' ? '🟠 Suspended' : '🔴 Closed'}
+                      {selectedAccount.status === 'active' ? '🟢 Active' : 
+                       selectedAccount.status === 'suspended' ? '🟠 Suspended' : 
+                       selectedAccount.status === 'fined' ? '💰 Fined' : 
+                       selectedAccount.status === 'matured' ? '🎯 Matured' : 
+                       '🔴 Closed'}
                     </span>
                   </span>
                 </div>
                 <div className="detail-row">
-                  <span className="detail-label">Balance:</span>
-                  <span className="detail-value">₹{selectedAccount.balance.toLocaleString()}</span>
+                  <span className="detail-label">Tenure:</span>
+                  <span className="detail-value">{selectedAccount.tenure} months</span>
                 </div>
               </div>
 
               <div className="form-section">
                 <h4>Account Holder Information</h4>
                 <div className="detail-row">
-                  <span className="detail-label">Name:</span>
-                  <span className="detail-value">{selectedAccount.accountHolderName}</span>
+                  <span className="detail-label">Ownership Type:</span>
+                  <span className="detail-value">
+                    {selectedAccount.accountOwnershipType === 'single' ? 'Single' : 'Joint'}
+                  </span>
                 </div>
-                {selectedAccount.email && (
-                  <div className="detail-row">
-                    <span className="detail-label">Email:</span>
-                    <span className="detail-value">{selectedAccount.email}</span>
-                  </div>
-                )}
-                {selectedAccount.phone && (
-                  <div className="detail-row">
-                    <span className="detail-label">Phone:</span>
-                    <span className="detail-value">{selectedAccount.phone}</span>
-                  </div>
-                )}
+                <div className="detail-row">
+                  <span className="detail-label">
+                    {selectedAccount.accountOwnershipType === 'single' ? 'Name:' : 'Names:'}
+                  </span>
+                  <span className="detail-value">
+                    {selectedAccount.accountHolderNames.join(', ')}
+                  </span>
+                </div>
+
+
               </div>
 
               <div className="form-section">
-                <h4>Bank Information</h4>
+                <h4>Institution Information</h4>
                 <div className="detail-row">
-                  <span className="detail-label">Bank Name:</span>
-                  <span className="detail-value">{selectedAccount.bankName}</span>
+                  <span className="detail-label">Institution Type:</span>
+                  <span className="detail-value">
+                    {selectedAccount.institutionType === 'bank' ? '🏦 Bank' : '📮 Post Office'}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Institution Name:</span>
+                  <span className="detail-value">{selectedAccount.institutionName}</span>
                 </div>
                 <div className="detail-row">
                   <span className="detail-label">Branch Code:</span>
                   <span className="detail-value">{selectedAccount.branchCode}</span>
                 </div>
-                <div className="detail-row">
-                  <span className="detail-label">IFSC Code:</span>
-                  <span className="detail-value">{selectedAccount.ifscCode}</span>
-                </div>
+                {selectedAccount.ifscCode && (
+                  <div className="detail-row">
+                    <span className="detail-label">IFSC Code:</span>
+                    <span className="detail-value">{selectedAccount.ifscCode}</span>
+                  </div>
+                )}
               </div>
 
               <div className="form-section">
@@ -714,48 +933,47 @@ const AccountsManagement: React.FC = () => {
 
       {/* Account Display */}
       {viewMode === 'cards' ? (
-        <div className="users-cards-container">
+        <div className="users-grid">
           {(currentAccounts.length > 0 ? currentAccounts : accounts).map((account: Account) => (
             <div key={account.id} className="user-card">
-              <div className="user-card-header">
-                <div className="user-avatar">
-                  <span className="avatar-initials">
-                    {getAccountInitials(account.accountHolderName)}
-                  </span>
-                </div>
-                <div className="user-info">
-                  <h3 className="user-name">{account.accountHolderName}</h3>
-                  <p className="user-email">{account.accountNumber}</p>
-                  <p className="user-role">{getAccountTypeDisplay(account.accountType)}</p>
-                </div>
-                <div className="user-status">
-                  <span className={`status-badge ${account.status}`}>
-                    {account.status === 'active' ? '🟢' : account.status === 'suspended' ? '🟠' : '🔴'} {getStatusDisplay(account.status)}
-                  </span>
-                </div>
+              <div className="user-avatar">
+                <span className="avatar-initials">
+                  {getAccountInitials(account.accountHolderNames[0])}
+                </span>
               </div>
-              
-              <div className="user-card-body">
+              <div className="user-main-info">
+                <div className="user-header">
+                  <h3 className="full-name">
+                    {account.accountOwnershipType === 'single' 
+                      ? account.accountHolderNames[0] 
+                      : `${account.accountHolderNames[0]} & ${account.accountHolderNames.length - 1} more`}
+                  </h3>
+                  <span className={`status-badge ${account.status}`}>
+                    {account.status === 'active' ? '🟢' : 
+                     account.status === 'suspended' ? '🟠' : 
+                     account.status === 'fined' ? '💰' : 
+                     account.status === 'matured' ? '🎯' : 
+                     '🔴'} {getStatusDisplay(account.status)}
+                  </span>
+                </div>
                 <div className="user-details">
-                  <div className="detail-item">
-                    <span className="detail-label">Bank:</span>
-                    <span className="detail-value">{account.bankName}</span>
+                  <div className="detail-row">
+                    <span className="detail-label">Account:</span>
+                    <span className="detail-value">{account.accountNumber}</span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Balance:</span>
-                    <span className="detail-value">₹{account.balance.toLocaleString()}</span>
+                  <div className="detail-row">
+                    <span className="detail-label">Type:</span>
+                    <span className="detail-value">{getAccountTypeDisplay(account.accountType)}</span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">KYC:</span>
+                  <div className="detail-row">
+                    <span className="detail-label">Institution:</span>
                     <span className="detail-value">
-                      <span className={`status-badge ${account.kycStatus}`}>
-                        {getKYCStatusDisplay(account.kycStatus)}
-                      </span>
+                      {account.institutionType === 'bank' ? '🏦' : '📮'} {account.institutionName}
                     </span>
                   </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Address:</span>
-                    <span className="detail-value">{account.address}</span>
+                  <div className="detail-row">
+                    <span className="detail-label">Tenure:</span>
+                    <span className="detail-value">{account.tenure} months</span>
                   </div>
                 </div>
               </div>
@@ -801,10 +1019,9 @@ const AccountsManagement: React.FC = () => {
                 <th>Account</th>
                 <th>Holder</th>
                 <th>Type</th>
-                <th>Bank</th>
-                <th>Balance</th>
+                <th>Institution</th>
+                <th>Tenure</th>
                 <th>Status</th>
-                <th>KYC</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -813,9 +1030,9 @@ const AccountsManagement: React.FC = () => {
                 <tr key={account.id} className="user-row">
                   <td className="client-info">
                     <div className="client-avatar">
-                      <span className="table-avatar-initials">
-                        {getAccountInitials(account.accountHolderName)}
-                      </span>
+                                          <span className="table-avatar-initials">
+                      {getAccountInitials(account.accountHolderNames[0])}
+                    </span>
                     </div>
                     <div className="client-name">
                       {account.accountNumber}
@@ -823,7 +1040,9 @@ const AccountsManagement: React.FC = () => {
                   </td>
                   <td className="address-cell">
                     <div className="cell-content">
-                      {account.accountHolderName}
+                      {account.accountOwnershipType === 'single' 
+                        ? account.accountHolderNames[0] 
+                        : `${account.accountHolderNames[0]} & ${account.accountHolderNames.length - 1} more`}
                     </div>
                   </td>
                   <td className="mobile-cell">
@@ -833,22 +1052,21 @@ const AccountsManagement: React.FC = () => {
                   </td>
                   <td className="address-cell">
                     <div className="cell-content">
-                      {account.bankName}
+                      {account.institutionType === 'bank' ? '🏦' : '📮'} {account.institutionName}
                     </div>
                   </td>
                   <td className="mobile-cell">
                     <div className="cell-content">
-                      ₹{account.balance.toLocaleString()}
+                      {account.tenure} months
                     </div>
                   </td>
                   <td className="status-cell">
                     <span className={`table-status-badge ${account.status || 'active'}`}>
-                      {account.status === 'active' ? '🟢' : account.status === 'suspended' ? '🟠' : '🔴'} {getStatusDisplay(account.status || 'active')}
-                    </span>
-                  </td>
-                  <td className="status-cell">
-                    <span className={`table-status-badge ${account.kycStatus}`}>
-                      {account.kycStatus === 'verified' ? '🟢' : account.kycStatus === 'pending' ? '🟡' : '🔴'} {getKYCStatusDisplay(account.kycStatus)}
+                      {account.status === 'active' ? '🟢' : 
+                       account.status === 'suspended' ? '🟠' : 
+                       account.status === 'fined' ? '💰' : 
+                       account.status === 'matured' ? '🎯' : 
+                       '🔴'} {getStatusDisplay(account.status || 'active')}
                     </span>
                   </td>
                   <td className="actions-cell">

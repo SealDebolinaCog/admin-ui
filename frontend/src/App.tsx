@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
 import Dashboard from './components/Dashboard';
-import UserManagement from './components/UserManagement';
+import ClientManagement from './components/ClientManagement';
 import ShopManagement from './components/ShopManagement';
 import AccountsManagement from './components/AccountsManagement';
 import Navigation from './components/Navigation';
@@ -14,7 +14,7 @@ function App() {
       case 'dashboard':
         return <Dashboard />;
       case 'users':
-        return <UserManagement />;
+        return <ClientManagement />;
       case 'shops':
         return <ShopManagement />;
       case 'accounts':

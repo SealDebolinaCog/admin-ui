@@ -62,6 +62,29 @@
   background-color: rgba(255, 255, 255, 0.2);
 }
 
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.quick-fill-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.quick-fill-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
 .shop-form-progress {
   display: flex;
   justify-content: space-between;
@@ -126,6 +149,21 @@
 .progress-step.active .step-label {
   color: #667eea;
   font-weight: 600;
+}
+
+.step-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  color: #667eea;
+  font-size: 20px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 .shop-form {
@@ -441,4 +479,125 @@
   border-color: #667eea;
   color: #667eea;
   background-color: #f8fafc;
+}
+
+/* Joint Account Holders Styling */
+.joint-holders {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.joint-holder-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.joint-holder-input input {
+  flex: 1;
+}
+
+.remove-holder-btn {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-holder-btn:hover {
+  background-color: #dc2626;
+}
+
+.add-holder-btn {
+  background: none;
+  border: 2px dashed #d1d5db;
+  color: #6b7280;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.add-holder-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+  background-color: #f8fafc;
+}
+
+/* Form Summary Section */
+.form-summary {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.form-summary h4 {
+  margin: 0 0 16px 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 14px;
+  color: #212529;
+  font-weight: 600;
+}
+
+/* Readonly Field Styling */
+.readonly-field {
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+  cursor: not-allowed;
+  border-color: #dee2e6 !important;
+}
+
+.readonly-field:focus {
+  box-shadow: none !important;
+  border-color: #dee2e6 !important;
+}
+
+/* Character Counter */
+.char-counter {
+  font-size: 11px;
+  color: #6c757d;
+  text-align: right;
+  margin-top: 2px;
+  font-style: italic;
 } 

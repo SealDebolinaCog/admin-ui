@@ -16,7 +16,7 @@ interface Shop {
   registrationDate?: string;
   lastActivity?: string;
   revenue?: number;
-  rating?: number;
+
 }
 
 const ShopManagement: React.FC = () => {
@@ -115,7 +115,7 @@ const ShopManagement: React.FC = () => {
         registrationDate: `2023-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
         lastActivity: Math.random() > 0.3 ? `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}` : undefined,
         revenue: Math.floor(Math.random() * 1000000) + 50000,
-        rating: Math.round((Math.random() * 2 + 3) * 10) / 10 // 3.0 to 5.0 rating
+    
       });
     }
     return shops;
@@ -260,7 +260,7 @@ const ShopManagement: React.FC = () => {
       registrationDate: shopData.registrationDate || new Date().toISOString().split('T')[0],
       lastActivity: new Date().toISOString().split('T')[0],
       revenue: shopData.annualRevenue || Math.floor(Math.random() * 500000) + 50000,
-      rating: Math.floor(Math.random() * 5) + 1
+      
     };
 
     setShops([...shops, shop]);
@@ -425,8 +425,9 @@ const ShopManagement: React.FC = () => {
   }
 
   return (
-    <div className="user-management">
-      <div className="user-header">
+    <div className="users-management">
+      {/* Header */}
+      <div className="users-header">
         <div>
           <h1>Shops</h1>
           <p>Manage shops and their information</p>
@@ -774,10 +775,7 @@ const ShopManagement: React.FC = () => {
                     <span className="detail-label">Address:</span>
                     <span className="detail-value">{shop.address}</span>
                   </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Rating:</span>
-                    <span className="detail-value">⭐ {shop.rating}/5.0</span>
-                  </div>
+
                 </div>
               </div>
               <div className="user-actions">
@@ -822,7 +820,6 @@ const ShopManagement: React.FC = () => {
                 <th>Owner</th>
                 <th>Category</th>
                 <th>Address</th>
-                <th>Rating</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -853,11 +850,6 @@ const ShopManagement: React.FC = () => {
                   <td className="address-cell">
                     <div className="cell-content">
                       {shop.address}
-                    </div>
-                  </td>
-                  <td className="mobile-cell">
-                    <div className="cell-content">
-                      ⭐ {shop.rating}/5.0
                     </div>
                   </td>
                   <td className="status-cell">

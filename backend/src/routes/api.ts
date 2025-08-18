@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import userRouter from './users';
 import { authRouter } from './auth';
+import clientRouter from './clients';
+import shopRouter from './shops';
+import accountRouter from './accounts';
 
 const router = Router();
 
@@ -12,6 +15,9 @@ router.get('/', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       users: '/api/users',
+      clients: '/api/clients',
+      shops: '/api/shops',
+      accounts: '/api/accounts',
       health: '/health'
     }
   });
@@ -20,5 +26,8 @@ router.get('/', (req, res) => {
 // Route modules
 router.use('/auth', authRouter);
 router.use('/users', userRouter);
+router.use('/clients', clientRouter);
+router.use('/shops', shopRouter);
+router.use('/accounts', accountRouter);
 
 export { router as apiRouter };

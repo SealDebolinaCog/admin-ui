@@ -10,6 +10,7 @@ const morgan_1 = __importDefault(require("morgan"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const api_1 = require("./routes/api");
 const errorHandler_1 = require("./middleware/errorHandler");
+const seed_1 = require("./database/seed");
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -42,10 +43,17 @@ app.use('*', (req, res) => {
         message: `Route ${req.originalUrl} not found`
     });
 });
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
     console.log(`🔗 API base URL: http://localhost:${PORT}/api`);
+    // Seed database with initial data
+    try {
+        await (0, seed_1.seedDatabase)();
+    }
+    catch (error) {
+        console.error('Error seeding database:', error);
+    }
 });
 exports.default = app;
 //# sourceMappingURL=index.js.map

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './ShopForm.css';
+import ClientSearchDropdown from './ClientSearchDropdown';
 
 // Account interfaces
 interface Address {
@@ -15,16 +16,16 @@ interface Address {
 interface AccountFormData {
   // Account details
   accountNumber: string;
-  accountHolderName: string;
-  accountType: 'savings' | 'current' | 'fixed' | 'recurring' | 'business';
-  bankName: string;
+  accountOwnershipType: 'single' | 'joint';
+  accountHolderNames: string[]; // Array to store single or multiple names
+  institutionType: 'bank' | 'post_office';
+  accountType: 'savings' | 'current' | 'fixed' | 'recurring' | 'business' | 'recurring_deposit' | '1td' | '2td' | '3td' | '4td' | '5td' | 'national_savings_certificate' | 'kishan_vikash_patra' | 'monthly_income_scheme';
+  institutionName: string;
   branchCode: string;
-  ifscCode: string;
-  balance: number;
+  ifscCode?: string;
+  tenure: number;
   
   // Account holder information
-  email: string;
-  phone: string;
   address: Address;
   
   // Nominee information
@@ -32,7 +33,14 @@ interface AccountFormData {
   nomineeRelation: string;
   
   // Status
-  status: 'active' | 'suspended' | 'closed';
+  status: 'active' | 'suspended' | 'fined' | 'matured' | 'closed';
+  
+  // Payment details
+  startDate: string;
+  maturityDate: string;
+  paymentType: 'monthly' | 'annually' | 'one_time';
+  amount: number;
+  lastPaymentDate: string;
 }
 
 interface AccountFormProps {
@@ -45,58 +53,44 @@ interface AccountFormProps {
 
 // Account types
 const ACCOUNT_TYPES = [
-  { value: 'savings', label: 'Savings Account' },
-  { value: 'current', label: 'Current Account' },
-  { value: 'fixed', label: 'Fixed Deposit' },
-  { value: 'recurring', label: 'Recurring Deposit' },
-  { value: 'business', label: 'Business Account' }
+  // Bank Account Types
+  { value: 'savings', label: 'Savings Account', institutionType: 'bank' },
+  { value: 'current', label: 'Current Account', institutionType: 'bank' },
+  { value: 'fixed', label: 'Fixed Deposit', institutionType: 'bank' },
+  { value: 'recurring', label: 'Recurring Deposit', institutionType: 'bank' },
+  { value: 'business', label: 'Business Account', institutionType: 'bank' },
+  // Post Office Account Types
+  { value: 'recurring_deposit', label: 'Recurring Deposit', institutionType: 'post_office' },
+  { value: '1td', label: '1 Year Term Deposit (1TD)', institutionType: 'post_office' },
+  { value: '2td', label: '2 Year Term Deposit (2TD)', institutionType: 'post_office' },
+  { value: '3td', label: '3 Year Term Deposit (3TD)', institutionType: 'post_office' },
+  { value: '4td', label: '4 Year Term Deposit (4TD)', institutionType: 'post_office' },
+  { value: '5td', label: '5 Year Term Deposit (5TD)', institutionType: 'post_office' },
+  { value: 'national_savings_certificate', label: 'National Savings Certificate', institutionType: 'post_office' },
+  { value: 'kishan_vikash_patra', label: 'Kishan Vikash Patra', institutionType: 'post_office' },
+  { value: 'monthly_income_scheme', label: 'Monthly Income Scheme', institutionType: 'post_office' }
+];
+
+// Function to get account types based on institution type
+const getAccountTypesForInstitution = (institutionType: string) => {
+  return ACCOUNT_TYPES.filter(type => type.institutionType === institutionType);
+};
+
+
+
+// Account ownership types
+const ACCOUNT_OWNERSHIP_TYPES = [
+  { value: 'single', label: 'Single' },
+  { value: 'joint', label: 'Joint' }
 ];
 
 // Account statuses
 const ACCOUNT_STATUSES = [
   { value: 'active', label: 'Active' },
   { value: 'suspended', label: 'Suspended' },
+  { value: 'fined', label: 'Fined' },
+  { value: 'matured', label: 'Matured' },
   { value: 'closed', label: 'Closed' }
-];
-
-// Indian states and union territories data
-const INDIAN_STATES = [
-  { state: 'Andhra Pradesh', districts: ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Nellore', 'Kurnool', 'Rajahmundry', 'Tirupati', 'Anantapur'] },
-  { state: 'Arunachal Pradesh', districts: ['Itanagar', 'Naharlagun', 'Pasighat', 'Tezpur', 'Bomdila', 'Ziro', 'Along', 'Tezu'] },
-  { state: 'Assam', districts: ['Guwahati', 'Silchar', 'Dibrugarh', 'Jorhat', 'Nagaon', 'Tinsukia', 'Tezpur', 'Bongaigaon'] },
-  { state: 'Bihar', districts: ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Purnia', 'Darbhanga', 'Bihar Sharif', 'Arrah'] },
-  { state: 'Chhattisgarh', districts: ['Raipur', 'Bhilai', 'Korba', 'Bilaspur', 'Durg', 'Rajnandgaon', 'Jagdalpur', 'Raigarh'] },
-  { state: 'Goa', districts: ['Panaji', 'Margao', 'Vasco da Gama', 'Mapusa', 'Ponda', 'Bicholim', 'Curchorem', 'Sanquelim'] },
-  { state: 'Gujarat', districts: ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Bhavnagar', 'Jamnagar', 'Gandhinagar', 'Anand'] },
-  { state: 'Haryana', districts: ['Gurugram', 'Faridabad', 'Panipat', 'Ambala', 'Yamunanagar', 'Rohtak', 'Hisar', 'Karnal'] },
-  { state: 'Himachal Pradesh', districts: ['Shimla', 'Mandi', 'Solan', 'Kangra', 'Kullu', 'Hamirpur', 'Una', 'Chamba'] },
-  { state: 'Jharkhand', districts: ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Hazaribagh', 'Deoghar', 'Giridih', 'Palamu'] },
-  { state: 'Karnataka', districts: ['Bangalore', 'Mysore', 'Hubli-Dharwad', 'Mangalore', 'Belgaum', 'Gulbarga', 'Bellary', 'Bijapur'] },
-  { state: 'Kerala', districts: ['Thiruvananthapuram', 'Kochi', 'Kozhikode', 'Thrissur', 'Kollam', 'Alappuzha', 'Palakkad', 'Kannur'] },
-  { state: 'Madhya Pradesh', districts: ['Bhopal', 'Indore', 'Jabalpur', 'Gwalior', 'Ujjain', 'Sagar', 'Dewas', 'Satna'] },
-  { state: 'Maharashtra', districts: ['Mumbai', 'Pune', 'Nagpur', 'Thane', 'Nashik', 'Aurangabad', 'Solapur', 'Kolhapur'] },
-  { state: 'Manipur', districts: ['Imphal', 'Thoubal', 'Bishnupur', 'Churachandpur', 'Chandel', 'Senapati', 'Tamenglong', 'Ukhrul'] },
-  { state: 'Meghalaya', districts: ['Shillong', 'Tura', 'Jowai', 'Nongstoin', 'Williamnagar', 'Baghmara', 'Resubelpara', 'Mairang'] },
-  { state: 'Mizoram', districts: ['Aizawl', 'Lunglei', 'Saiha', 'Champhai', 'Kolasib', 'Serchhip', 'Mamit', 'Lawngtlai'] },
-  { state: 'Nagaland', districts: ['Kohima', 'Dimapur', 'Mokokchung', 'Tuensang', 'Wokha', 'Mon', 'Phek', 'Zunheboto'] },
-  { state: 'Odisha', districts: ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Brahmapur', 'Sambalpur', 'Puri', 'Balasore', 'Bhadrak'] },
-  { state: 'Punjab', districts: ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Hoshiarpur', 'Mohali', 'Moga'] },
-  { state: 'Rajasthan', districts: ['Jaipur', 'Jodhpur', 'Kota', 'Bikaner', 'Ajmer', 'Udaipur', 'Bhilwara', 'Alwar'] },
-  { state: 'Sikkim', districts: ['Gangtok', 'Namchi', 'Mangan', 'Gyalshing', 'Soreng', 'Ravongla', 'Jorethang', 'Singtam'] },
-  { state: 'Tamil Nadu', districts: ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Vellore', 'Tiruchirappalli', 'Erode', 'Thoothukkudi'] },
-  { state: 'Telangana', districts: ['Hyderabad', 'Warangal', 'Nizamabad', 'Karimnagar', 'Ramagundam', 'Khammam', 'Mahbubnagar', 'Nalgonda'] },
-  { state: 'Tripura', districts: ['Agartala', 'Udaipur', 'Dharmanagar', 'Kailasahar', 'Belonia', 'Khowai', 'Teliamura', 'Ambassa'] },
-  { state: 'Uttar Pradesh', districts: ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Varanasi', 'Meerut', 'Prayagraj', 'Bareilly'] },
-  { state: 'Uttarakhand', districts: ['Dehradun', 'Haridwar', 'Roorkee', 'Haldwani', 'Rudrapur', 'Kashipur', 'Rishikesh', 'Kotdwar'] },
-  { state: 'West Bengal', districts: ['Kolkata', 'Howrah', 'Durgapur', 'Asansol', 'Siliguri', 'Bardhaman', 'Malda', 'Nadia'] },
-  { state: 'Delhi', districts: ['New Delhi', 'Central Delhi', 'North Delhi', 'South Delhi', 'East Delhi', 'West Delhi', 'Shahdara', 'Dwarka'] },
-  { state: 'Jammu and Kashmir', districts: ['Srinagar', 'Jammu', 'Anantnag', 'Baramulla', 'Pulwama', 'Kupwara', 'Budgam', 'Shopian'] },
-  { state: 'Ladakh', districts: ['Leh', 'Kargil'] },
-  { state: 'Chandigarh', districts: ['Chandigarh'] },
-  { state: 'Dadra and Nagar Haveli and Daman and Diu', districts: ['Silvassa', 'Daman', 'Diu'] },
-  { state: 'Lakshadweep', districts: ['Kavaratti', 'Agatti', 'Amini', 'Andrott', 'Kadmat', 'Kalpeni', 'Minicoy'] },
-  { state: 'Puducherry', districts: ['Puducherry', 'Karaikal', 'Mahe', 'Yanam'] },
-  { state: 'Andaman and Nicobar Islands', districts: ['Port Blair', 'Car Nicobar', 'Great Nicobar', 'Havelock', 'Neil Island'] }
 ];
 
 const AccountForm: React.FC<AccountFormProps> = ({
@@ -107,16 +101,17 @@ const AccountForm: React.FC<AccountFormProps> = ({
   mode
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
   const [formData, setFormData] = useState<AccountFormData>({
     accountNumber: '',
-    accountHolderName: '',
-    accountType: 'savings',
-    bankName: '',
-    branchCode: '',
+    accountOwnershipType: 'joint',
+    accountHolderNames: ['', ''],
+    institutionType: 'post_office',
+    accountType: 'recurring_deposit',
+    institutionName: 'Aranghata Post Office',
+    branchCode: '102024',
     ifscCode: '',
-    balance: 0,
-    email: '',
-    phone: '',
+    tenure: 12,
     address: {
       addressLine1: '',
       addressLine2: '',
@@ -128,7 +123,12 @@ const AccountForm: React.FC<AccountFormProps> = ({
     },
     nomineeName: '',
     nomineeRelation: '',
-    status: 'active'
+    status: 'active',
+    startDate: new Date().toISOString().split('T')[0],
+    maturityDate: '',
+    paymentType: 'monthly',
+    amount: 0,
+    lastPaymentDate: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -141,6 +141,122 @@ const AccountForm: React.FC<AccountFormProps> = ({
       }));
     }
   }, [initialData]);
+
+  // Reset account type when institution type changes
+  useEffect(() => {
+    const availableTypes = getAccountTypesForInstitution(formData.institutionType);
+    if (!availableTypes.find(type => type.value === formData.accountType)) {
+      setFormData(prev => ({
+        ...prev,
+        accountType: (availableTypes[0]?.value as any) || 'savings'
+      }));
+    }
+  }, [formData.institutionType]);
+
+  // Reset account holder names when ownership type changes
+  useEffect(() => {
+    if (formData.accountOwnershipType === 'single') {
+      setFormData(prev => ({
+        ...prev,
+        accountHolderNames: prev.accountHolderNames.length > 0 ? [prev.accountHolderNames[0]] : ['']
+      }));
+    } else {
+      // Joint account - ensure at least 2 holders
+      if (formData.accountHolderNames.length < 2) {
+        setFormData(prev => ({
+          ...prev,
+          accountHolderNames: prev.accountHolderNames.length > 0 ? [...prev.accountHolderNames, ''] : ['']
+        }));
+      }
+    }
+  }, [formData.accountOwnershipType]);
+
+  // Auto-set branch code when post office is selected
+  useEffect(() => {
+    if (formData.institutionType === 'post_office') {
+      if (formData.institutionName === 'Aranghata Post Office') {
+        setFormData(prev => ({
+          ...prev,
+          branchCode: '102024'
+        }));
+      } else if (formData.institutionName === 'Central Post Office') {
+        setFormData(prev => ({
+          ...prev,
+          branchCode: '999999'
+        }));
+      }
+    }
+  }, [formData.institutionName, formData.institutionType]);
+
+  // Auto-set tenure based on account type
+  useEffect(() => {
+    let newTenure = 12; // Default tenure
+    
+    if (formData.institutionType === 'post_office') {
+      switch (formData.accountType) {
+        case '1td':
+          newTenure = 12;
+          break;
+        case '2td':
+          newTenure = 24;
+          break;
+        case '3td':
+          newTenure = 36;
+          break;
+        case '4td':
+          newTenure = 48;
+          break;
+        case '5td':
+          newTenure = 60;
+          break;
+        case 'recurring_deposit':
+          newTenure = 60; // 5 years for RD
+          break;
+        case 'national_savings_certificate':
+          newTenure = 60; // 5 years for NSC
+          break;
+        case 'kishan_vikash_patra':
+          newTenure = 120; // 10 years for KVP
+          break;
+        case 'monthly_income_scheme':
+          newTenure = 60; // 5 years for MIS
+          break;
+        default:
+          newTenure = 12;
+      }
+    } else {
+      // Bank accounts
+      switch (formData.accountType) {
+        case 'fixed':
+          newTenure = 60; // 5 years for fixed deposits
+          break;
+        case 'recurring':
+          newTenure = 60; // 5 years for recurring deposits
+          break;
+        default:
+          newTenure = 0; // No tenure for savings/current accounts
+      }
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      tenure: newTenure
+    }));
+  }, [formData.accountType, formData.institutionType]);
+
+  // Auto-calculate maturity date based on start date and tenure
+  useEffect(() => {
+    if (formData.startDate && formData.tenure > 0) {
+      const startDate = new Date(formData.startDate);
+      const maturityDate = new Date(startDate);
+      maturityDate.setMonth(maturityDate.getMonth() + formData.tenure);
+      
+      setFormData(prev => ({
+        ...prev,
+        maturityDate: maturityDate.toISOString().split('T')[0]
+      }));
+    }
+  }, [formData.startDate, formData.tenure]);
 
   // Validation functions
   const validateName = (name: string): { isValid: boolean; error?: string } => {
@@ -159,20 +275,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
     return { isValid: true };
   };
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
 
-  const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^[6-9]\d{9}$/;
-    return phoneRegex.test(phone);
-  };
-
-  const validatePincode = (pincode: string): boolean => {
-    const pincodeRegex = /^[1-9][0-9]{5}$/;
-    return pincodeRegex.test(pincode);
-  };
 
   const validateAccountNumber = (accountNumber: string): { isValid: boolean; error?: string } => {
     if (!accountNumber || !accountNumber.trim()) {
@@ -186,6 +289,16 @@ const AccountForm: React.FC<AccountFormProps> = ({
     }
     if (!/^[0-9]+$/.test(accountNumber.trim())) {
       return { isValid: false, error: 'Account number can only contain numbers' };
+    }
+    return { isValid: true };
+  };
+
+  const validateTenure = (tenure: number): { isValid: boolean; error?: string } => {
+    if (tenure < 1) {
+      return { isValid: false, error: 'Tenure must be at least 1 month' };
+    }
+    if (tenure > 120) {
+      return { isValid: false, error: 'Tenure cannot exceed 120 months (10 years)' };
     }
     return { isValid: true };
   };
@@ -213,59 +326,76 @@ const AccountForm: React.FC<AccountFormProps> = ({
         newErrors.accountNumber = accountNumberValidation.error || 'Invalid account number';
       }
 
-      if (!formData.accountHolderName || !formData.accountHolderName.trim()) {
-        newErrors.accountHolderName = 'Account holder name is required';
+      // Validate account holder names
+      if (formData.accountOwnershipType === 'single') {
+        if (!formData.accountHolderNames[0] || !formData.accountHolderNames[0].trim()) {
+          newErrors.accountHolderNames = 'Account holder name is required';
+        } else {
+          const holderNameValidation = validateName(formData.accountHolderNames[0]);
+          if (!holderNameValidation.isValid) {
+            newErrors.accountHolderNames = holderNameValidation.error || 'Invalid account holder name';
+          }
+        }
       } else {
-        const holderNameValidation = validateName(formData.accountHolderName);
-        if (!holderNameValidation.isValid) {
-          newErrors.accountHolderName = holderNameValidation.error || 'Invalid account holder name';
+        // Joint account validation
+        const validNames = formData.accountHolderNames.filter(name => name && name.trim());
+        if (validNames.length === 0) {
+          newErrors.accountHolderNames = 'At least one account holder name is required';
+        } else {
+          // Validate each name
+          for (let i = 0; i < formData.accountHolderNames.length; i++) {
+            const name = formData.accountHolderNames[i];
+            if (name && name.trim()) {
+              const holderNameValidation = validateName(name);
+              if (!holderNameValidation.isValid) {
+                newErrors.accountHolderNames = `Invalid name for holder ${i + 1}: ${holderNameValidation.error}`;
+                break;
+              }
+            }
+          }
         }
       }
 
-      if (!formData.bankName || !formData.bankName.trim()) {
-        newErrors.bankName = 'Bank name is required';
+      if (!formData.institutionName || !formData.institutionName.trim()) {
+        newErrors.institutionName = 'Institution name is required';
       }
 
       if (!formData.branchCode || !formData.branchCode.trim()) {
         newErrors.branchCode = 'Branch code is required';
       }
 
-      const ifscValidation = validateIFSC(formData.ifscCode);
-      if (!ifscValidation.isValid) {
-        newErrors.ifscCode = ifscValidation.error || 'Invalid IFSC code';
+      if (formData.institutionType === 'bank') {
+        const ifscValidation = validateIFSC(formData.ifscCode || '');
+        if (!ifscValidation.isValid) {
+          newErrors.ifscCode = ifscValidation.error || 'Invalid IFSC code';
+        }
       }
 
-      if (formData.balance < 0) {
-        newErrors.balance = 'Balance cannot be negative';
+      const tenureValidation = validateTenure(formData.tenure);
+      if (!tenureValidation.isValid) {
+        newErrors.tenure = tenureValidation.error || 'Invalid tenure';
       }
     }
 
     // Step 2 validation (Account Holder Information)
     if (currentStep === 2) {
-      if (formData.email && !validateEmail(formData.email)) {
-        newErrors.email = 'Invalid email format';
-      }
-      if (formData.phone && !validatePhone(formData.phone)) {
-        newErrors.phone = 'Invalid phone number';
-      }
+      // No validation needed for this step
     }
 
-    // Step 3 validation (Address & Nominee)
+    // Step 3 validation (Payment Details)
     if (currentStep === 3) {
-      if (!formData.address.addressLine1.trim()) {
-        newErrors.addressLine1 = 'Address line 1 is required';
+      // Payment details validation
+      if (!formData.startDate) {
+        newErrors.startDate = 'Start date is required';
       }
-      if (!formData.address.state.trim()) {
-        newErrors.state = 'State is required';
+      if (!formData.paymentType) {
+        newErrors.paymentType = 'Payment type is required';
       }
-      if (!formData.address.district.trim()) {
-        newErrors.district = 'District is required';
+      if (formData.amount <= 0) {
+        newErrors.amount = 'Amount must be greater than 0';
       }
-      if (!formData.address.pincode.trim()) {
-        newErrors.pincode = 'Pincode is required';
-      }
-      if (!validatePincode(formData.address.pincode)) {
-        newErrors.pincode = 'Invalid pincode format';
+      if (formData.paymentType === 'monthly' && !formData.lastPaymentDate) {
+        newErrors.lastPaymentDate = 'Last payment date is required for monthly payments';
       }
     }
 
@@ -282,6 +412,22 @@ const AccountForm: React.FC<AccountFormProps> = ({
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleClientSelect = (client: any) => {
+    setSelectedClient(client);
+    const fullName = `${client.firstName} ${client.lastName}`.trim();
+    
+    // Update the first account holder name
+    setFormData(prev => ({
+      ...prev,
+      accountHolderNames: [fullName, ...prev.accountHolderNames.slice(1)]
+    }));
+    
+    // Clear any existing errors
+    if (errors.accountHolderNames) {
+      setErrors(prev => ({ ...prev, accountHolderNames: '' }));
     }
   };
 
@@ -305,23 +451,41 @@ const AccountForm: React.FC<AccountFormProps> = ({
     }
   };
 
-  const handleHolderNameChange = (value: string) => {
+  const handleHolderNamesChange = (index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
-      accountHolderName: value
+      accountHolderNames: prev.accountHolderNames.map((name, i) => 
+        i === index ? value : name
+      )
     }));
     
     // Clear error when user starts typing
-    if (errors.accountHolderName) {
-      setErrors(prev => ({ ...prev, accountHolderName: '' }));
+    if (errors.accountHolderNames) {
+      setErrors(prev => ({ ...prev, accountHolderNames: '' }));
     }
     
     // Real-time validation
     if (value.trim()) {
       const holderNameValidation = validateName(value);
       if (!holderNameValidation.isValid) {
-        setErrors(prev => ({ ...prev, accountHolderName: holderNameValidation.error || 'Invalid account holder name' }));
+        setErrors(prev => ({ ...prev, accountHolderNames: holderNameValidation.error || 'Invalid account holder name' }));
       }
+    }
+  };
+
+  const addHolder = () => {
+    setFormData(prev => ({
+      ...prev,
+      accountHolderNames: [...prev.accountHolderNames, '']
+    }));
+  };
+
+  const removeHolder = (index: number) => {
+    if (formData.accountHolderNames.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        accountHolderNames: prev.accountHolderNames.filter((_, i) => i !== index)
+      }));
     }
   };
 
@@ -345,22 +509,17 @@ const AccountForm: React.FC<AccountFormProps> = ({
     }
   };
 
-  const handleAddressChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      address: { ...prev.address, [field]: value }
-    }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSubmit(formData);
+      // Show confirmation dialog
+      const confirmMessage = `Are you sure you want to ${mode === 'add' ? 'create' : 'update'} this account?\n\nAccount: ${formData.accountNumber}\nHolder: ${formData.accountHolderNames[0]}\nInstitution: ${formData.institutionName}`;
+      
+      if (window.confirm(confirmMessage)) {
+        onSubmit(formData);
+      }
     }
   };
 
@@ -385,29 +544,70 @@ const AccountForm: React.FC<AccountFormProps> = ({
       <div className="shop-form-modal">
         <div className="shop-form-header">
           <h2>{mode === 'add' ? 'Add New Account' : 'Edit Account'}</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <div className="header-actions">
+            {mode === 'add' && (
+              <button 
+                type="button" 
+                className="quick-fill-btn"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    accountNumber: '1234567890',
+                    accountHolderNames: ['John Doe'],
+                    institutionName: 'Sample Bank',
+                    branchCode: 'BR001',
+                    ifscCode: 'SAMP0001234',
+                    tenure: 24,
+                    startDate: '2024-01-01',
+                    maturityDate: '2026-01-01',
+                    paymentType: 'monthly',
+                    amount: 5000,
+                    lastPaymentDate: '2024-01-15',
+                    address: {
+                      addressLine1: '123 Main Street',
+                      addressLine2: 'Apt 4B',
+                      addressLine3: '',
+                      state: 'Maharashtra',
+                      district: 'Mumbai',
+                      pincode: '400001',
+                      country: 'India'
+                    },
+                    nomineeName: 'Jane Doe',
+                    nomineeRelation: 'Spouse'
+                  });
+                }}
+                title="Fill with sample data for testing"
+              >
+                🧪 Quick Fill
+              </button>
+            )}
+            <button className="close-button" onClick={onClose}>×</button>
+          </div>
         </div>
 
         <div className="shop-form-progress">
           <div className={`progress-step ${currentStep >= 1 ? 'active' : ''}`}>
             <span className="step-number">1</span>
-            <span className="step-label">Account Details</span>
+            <span className="step-label">Basic Info</span>
+            {currentStep === 1 && <span className="step-indicator">●</span>}
           </div>
           <div className={`progress-step ${currentStep >= 2 ? 'active' : ''}`}>
             <span className="step-number">2</span>
-            <span className="step-label">Holder Info</span>
+            <span className="step-label">Account Setup</span>
+            {currentStep === 2 && <span className="step-indicator">●</span>}
           </div>
           <div className={`progress-step ${currentStep >= 3 ? 'active' : ''}`}>
             <span className="step-number">3</span>
-            <span className="step-label">Address & Nominee</span>
+            <span className="step-label">Payment Details</span>
+            {currentStep === 3 && <span className="step-indicator">●</span>}
           </div>
         </div>
 
         <div className="shop-form">
-          {/* Step 1: Account Details */}
+          {/* Step 1: Basic Information */}
           {currentStep === 1 && (
             <div className="form-step">
-              <h3>Account Information</h3>
+              <h3>Basic Account Information</h3>
               
               <div className="form-group">
                 <label htmlFor="accountNumber">Account Number *</label>
@@ -424,63 +624,179 @@ const AccountForm: React.FC<AccountFormProps> = ({
               </div>
 
               <div className="form-group">
-                <label htmlFor="accountHolderName">Account Holder Name *</label>
-                <input
-                  type="text"
-                  id="accountHolderName"
-                  value={formData.accountHolderName}
-                  onChange={(e) => handleHolderNameChange(e.target.value)}
-                  className={errors.accountHolderName ? 'error' : ''}
-                  placeholder="Enter account holder name"
-                  maxLength={50}
-                />
-                {errors.accountHolderName && <span className="error-message">{errors.accountHolderName}</span>}
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="accountType">Account Type</label>
-                  <select
-                    id="accountType"
-                    value={formData.accountType}
-                    onChange={(e) => handleInputChange('accountType', e.target.value)}
-                  >
-                    {ACCOUNT_TYPES.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="balance">Opening Balance</label>
-                  <input
-                    type="number"
-                    id="balance"
-                    value={formData.balance}
-                    onChange={(e) => handleInputChange('balance', parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                  />
+                <label htmlFor="accountOwnershipType">Account Ownership Type *</label>
+                <select
+                  id="accountOwnershipType"
+                  value={formData.accountOwnershipType}
+                  onChange={(e) => handleInputChange('accountOwnershipType', e.target.value)}
+                >
+                  {ACCOUNT_OWNERSHIP_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </select>
+                <div className="help-text">
+                  {formData.accountOwnershipType === 'single' 
+                    ? 'Single account holder - one person owns the account' 
+                    : 'Joint account - multiple people can access the account'}
                 </div>
               </div>
 
               <div className="form-group">
-                <label htmlFor="bankName">Bank Name *</label>
-                <input
-                  type="text"
-                  id="bankName"
-                  value={formData.bankName}
-                  onChange={(e) => handleInputChange('bankName', e.target.value)}
-                  className={errors.bankName ? 'error' : ''}
-                  placeholder="Enter bank name"
-                />
-                {errors.bankName && <span className="error-message">{errors.bankName}</span>}
+                <label htmlFor="accountHolderNames">
+                  {formData.accountOwnershipType === 'single' ? 'Customer Name (Select from Database)' : 'Account Holder Names'} *
+                </label>
+                <div className="account-holders-section">
+                  {formData.accountOwnershipType === 'single' ? (
+                    <div>
+                      <ClientSearchDropdown
+                        value={formData.accountHolderNames[0] || ''}
+                        onChange={(value) => handleHolderNamesChange(0, value)}
+                        placeholder="Search for a client..."
+                        className={errors.accountHolderNames ? 'error' : ''}
+                        onClientSelect={handleClientSelect}
+                      />
+                      <div className="help-text">
+                        Start typing to search for existing clients in the database
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="joint-holders">
+                      {formData.accountHolderNames.map((name, index) => (
+                        <div key={index} className="joint-holder-input">
+                          {index === 0 ? (
+                            // First holder uses the searchable dropdown
+                            <ClientSearchDropdown
+                              value={name}
+                              onChange={(value) => handleHolderNamesChange(index, value)}
+                              placeholder={`Search for client ${index + 1}...`}
+                              className={errors.accountHolderNames ? 'error' : ''}
+                              onClientSelect={(client) => {
+                                const fullName = `${client.firstName} ${client.lastName}`.trim();
+                                handleHolderNamesChange(index, fullName);
+                              }}
+                            />
+                          ) : (
+                            // Additional holders can use regular input or dropdown
+                            <div className="holder-input-group">
+                              <ClientSearchDropdown
+                                value={name}
+                                onChange={(value) => handleHolderNamesChange(index, value)}
+                                placeholder={`Search for client ${index + 1}...`}
+                                className={errors.accountHolderNames ? 'error' : ''}
+                                onClientSelect={(client) => {
+                                  const fullName = `${client.firstName} ${client.lastName}`.trim();
+                                  handleHolderNamesChange(index, fullName);
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="remove-holder-btn"
+                                onClick={() => removeHolder(index)}
+                                title="Remove holder"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )}
+                          <div className="help-text">
+                            Start typing to search for existing clients in the database
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        className="add-holder-btn"
+                        onClick={addHolder}
+                        title="Add another holder"
+                      >
+                        ➕ Add Holder
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {errors.accountHolderNames && <span className="error-message">{errors.accountHolderNames}</span>}
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="branchCode">Branch Code *</label>
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+          )}
+
+          {/* Step 2: Account Setup */}
+          {currentStep === 2 && (
+            <div className="form-step">
+              <h3>Account Setup & Holder Information</h3>
+              
+
+
+              {/* 1. Institution Type */}
+              <div className="form-group">
+                <label htmlFor="institutionType">Institution Type *</label>
+                <select
+                  id="institutionType"
+                  value={formData.institutionType}
+                  onChange={(e) => handleInputChange('institutionType', e.target.value)}
+                  className={errors.institutionType ? 'error' : ''}
+                >
+                  <option value="">Select Institution Type</option>
+                  <option value="bank">🏦 Bank</option>
+                  <option value="post_office">📮 Post Office</option>
+                </select>
+                {errors.institutionType && <span className="error-message">{errors.institutionType}</span>}
+                <div className="help-text">Post office accounts include savings certificates, recurring deposits, etc.</div>
+              </div>
+
+              {/* 2. Post Office Name */}
+              <div className="form-group">
+                <label htmlFor="institutionName">
+                  {formData.institutionType === 'post_office' ? '📮 Post Office Name' : '🏦 Bank Name'} *
+                </label>
+                {formData.institutionType === 'post_office' ? (
+                  <select
+                    id="institutionName"
+                    value={formData.institutionName}
+                    onChange={(e) => handleInputChange('institutionName', e.target.value)}
+                    className={errors.institutionName ? 'error' : ''}
+                  >
+                    <option value="">Select Post Office</option>
+                    <option value="Aranghata Post Office">Aranghata Post Office</option>
+                    <option value="Central Post Office">Central Post Office</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    id="institutionName"
+                    value={formData.institutionName}
+                    onChange={(e) => handleInputChange('institutionName', e.target.value)}
+                    className={errors.institutionName ? 'error' : ''}
+                    placeholder="Enter bank name"
+                  />
+                )}
+                {errors.institutionName && <span className="error-message">{errors.institutionName}</span>}
+              </div>
+
+              {/* 3. Branch Code */}
+              <div className="form-group">
+                <label htmlFor="branchCode">Branch Code *</label>
+                {formData.institutionType === 'post_office' ? (
+                  <input
+                    type="text"
+                    id="branchCode"
+                    value={formData.branchCode}
+                    readOnly
+                    className="readonly-field"
+                    style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
+                  />
+                ) : (
                   <input
                     type="text"
                     id="branchCode"
@@ -489,15 +805,77 @@ const AccountForm: React.FC<AccountFormProps> = ({
                     className={errors.branchCode ? 'error' : ''}
                     placeholder="Enter branch code"
                   />
-                  {errors.branchCode && <span className="error-message">{errors.branchCode}</span>}
-                </div>
+                )}
+                {formData.institutionType === 'post_office' && (
+                  <div className="help-text">
+                    Branch code is automatically set based on post office selection
+                  </div>
+                )}
+                {errors.branchCode && <span className="error-message">{errors.branchCode}</span>}
+              </div>
 
+              {/* 4. Account Type */}
+              <div className="form-group">
+                <label htmlFor="accountType">Account Type</label>
+                <select
+                  id="accountType"
+                  value={formData.accountType}
+                  onChange={(e) => handleInputChange('accountType', e.target.value)}
+                  className={errors.accountType ? 'error' : ''}
+                >
+                  <option value="">Select Account Type</option>
+                  {getAccountTypesForInstitution(formData.institutionType).map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.accountType && <span className="error-message">{errors.accountType}</span>}
+                <div className="help-text">Select the type of account you want to open</div>
+              </div>
+
+              {/* 5. Tenure */}
+              <div className="form-group">
+                <label htmlFor="tenure">Tenure (Months)</label>
+                <input
+                  type="number"
+                  id="tenure"
+                  value={formData.tenure}
+                  readOnly
+                  className="readonly-field"
+                  style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
+                />
+                <div className="help-text">Tenure is automatically set based on account type</div>
+              </div>
+
+              {/* 6. Account Status */}
+              <div className="form-group">
+                <label htmlFor="status">Account Status</label>
+                <select
+                  id="status"
+                  value={formData.status}
+                  onChange={(e) => handleInputChange('status', e.target.value)}
+                  className={errors.status ? 'error' : ''}
+                >
+                  <option value="">Select Status</option>
+                  {ACCOUNT_STATUSES.map(status => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.status && <span className="error-message">{errors.status}</span>}
+                <div className="help-text">Select the initial status for the account</div>
+              </div>
+
+              {/* IFSC Code for Banks */}
+              {formData.institutionType === 'bank' && (
                 <div className="form-group">
                   <label htmlFor="ifscCode">IFSC Code *</label>
                   <input
                     type="text"
                     id="ifscCode"
-                    value={formData.ifscCode}
+                    value={formData.ifscCode || ''}
                     onChange={(e) => handleIFSCChange(e.target.value)}
                     className={errors.ifscCode ? 'error' : ''}
                     placeholder="SBIN0001234"
@@ -505,162 +883,110 @@ const AccountForm: React.FC<AccountFormProps> = ({
                   />
                   {errors.ifscCode && <span className="error-message">{errors.ifscCode}</span>}
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* Step 2: Account Holder Information */}
-          {currentStep === 2 && (
-            <div className="form-step">
-              <h3>Account Holder Information</h3>
-              
-              <div className="form-group">
-                <label htmlFor="email">Email Address</label>
-                <input
-                  type="email"
-                  id="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={errors.email ? 'error' : ''}
-                  placeholder="Enter email address"
-                />
-                {errors.email && <span className="error-message">{errors.email}</span>}
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="phone">Phone Number</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className={errors.phone ? 'error' : ''}
-                  placeholder="9876543210"
-                  maxLength={10}
-                />
-                {errors.phone && <span className="error-message">{errors.phone}</span>}
-                <div className="help-text">Enter 10-digit mobile number</div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="status">Account Status</label>
-                <select
-                  id="status"
-                  value={formData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                >
-                  {ACCOUNT_STATUSES.map(status => (
-                    <option key={status.value} value={status.value}>{status.label}</option>
-                  ))}
-                </select>
-              </div>
             </div>
           )}
 
           {/* Step 3: Address & Nominee */}
           {currentStep === 3 && (
             <form onSubmit={handleSubmit} className="form-step" id="account-form-step3">
-              <h3>Address & Nominee Information</h3>
+              <h3>Account Payment Details</h3>
               
-              <div className="form-group">
-                <label htmlFor="addressLine1">Address Line 1 *</label>
-                <input
-                  type="text"
-                  id="addressLine1"
-                  value={formData.address.addressLine1}
-                  onChange={(e) => handleAddressChange('addressLine1', e.target.value)}
-                  className={errors.addressLine1 ? 'error' : ''}
-                  placeholder="Enter address line 1"
-                />
-                {errors.addressLine1 && <span className="error-message">{errors.addressLine1}</span>}
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="addressLine2">Address Line 2</label>
-                <input
-                  type="text"
-                  id="addressLine2"
-                  value={formData.address.addressLine2}
-                  onChange={(e) => handleAddressChange('addressLine2', e.target.value)}
-                  placeholder="Enter address line 2 (optional)"
-                />
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="addressLine3">Address Line 3</label>
-                <input
-                  type="text"
-                  id="addressLine3"
-                  value={formData.address.addressLine3}
-                  onChange={(e) => handleAddressChange('addressLine3', e.target.value)}
-                  placeholder="Enter address line 3 (optional)"
-                />
-              </div>
 
-              <div className="form-row">
+
+
+
+
+
+
+
+              <div className="form-section">
+                <h4>Account Payment Details</h4>
+                
+                {/* 1. Start Date */}
                 <div className="form-group">
-                  <label htmlFor="state">State *</label>
-                  <select
-                    id="state"
-                    value={formData.address.state}
-                    onChange={(e) => handleAddressChange('state', e.target.value)}
-                    className={errors.state ? 'error' : ''}
-                  >
-                    <option value="">Select State</option>
-                    {INDIAN_STATES.map(stateData => (
-                      <option key={stateData.state} value={stateData.state}>
-                        {stateData.state}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.state && <span className="error-message">{errors.state}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="district">District *</label>
-                  <select
-                    id="district"
-                    value={formData.address.district}
-                    onChange={(e) => handleAddressChange('district', e.target.value)}
-                    className={errors.district ? 'error' : ''}
-                  >
-                    <option value="">Select District</option>
-                    {INDIAN_STATES.find(s => s.state === formData.address.state)?.districts.map(district => (
-                      <option key={district} value={district}>
-                        {district}
-                      </option>
-                    )) || []}
-                  </select>
-                  {errors.district && <span className="error-message">{errors.district}</span>}
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="pincode">Pincode *</label>
+                  <label htmlFor="startDate">Start Date *</label>
                   <input
-                    type="text"
-                    id="pincode"
-                    value={formData.address.pincode}
-                    onChange={(e) => handleAddressChange('pincode', e.target.value)}
-                    className={errors.pincode ? 'error' : ''}
-                    placeholder="Enter pincode"
-                    maxLength={6}
+                    type="date"
+                    id="startDate"
+                    value={formData.startDate}
+                    onChange={(e) => handleInputChange('startDate', e.target.value)}
+                    className={errors.startDate ? 'error' : ''}
+                    required
                   />
-                  {errors.pincode && <span className="error-message">{errors.pincode}</span>}
+                  {errors.startDate && <span className="error-message">{errors.startDate}</span>}
+                  <div className="help-text">Select the account start date (DD/MM/YYYY format)</div>
                 </div>
 
+                {/* 2. Account Maturity */}
                 <div className="form-group">
-                  <label htmlFor="country">Country</label>
+                  <label htmlFor="maturityDate">Account Maturity</label>
                   <input
-                    type="text"
-                    id="country"
-                    value={formData.address.country}
-                    onChange={(e) => handleAddressChange('country', e.target.value)}
-                    placeholder="Country"
+                    type="date"
+                    id="maturityDate"
+                    value={formData.maturityDate}
                     readOnly
+                    className="readonly-field"
+                    style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
                   />
+                  <div className="help-text">Maturity date is automatically calculated based on tenure</div>
                 </div>
+
+                {/* 3. Payment Type */}
+                <div className="form-group">
+                  <label htmlFor="paymentType">Payment Type *</label>
+                  <select
+                    id="paymentType"
+                    value={formData.paymentType}
+                    onChange={(e) => handleInputChange('paymentType', e.target.value)}
+                    className={errors.paymentType ? 'error' : ''}
+                    required
+                  >
+                    <option value="">Select Payment Type</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="annually">Annually</option>
+                    <option value="one_time">One Time</option>
+                  </select>
+                  {errors.paymentType && <span className="error-message">{errors.paymentType}</span>}
+                  <div className="help-text">Select how often payments will be made</div>
+                </div>
+
+                {/* 4. Amount */}
+                <div className="form-group">
+                  <label htmlFor="amount">Amount *</label>
+                  <input
+                    type="number"
+                    id="amount"
+                    value={formData.amount}
+                    onChange={(e) => handleInputChange('amount', parseFloat(e.target.value) || 0)}
+                    className={errors.amount ? 'error' : ''}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                  {errors.amount && <span className="error-message">{errors.amount}</span>}
+                  <div className="help-text">Enter the payment amount</div>
+                </div>
+
+                {/* 5. Last Payment Made (only for Monthly) */}
+                {formData.paymentType === 'monthly' && (
+                  <div className="form-group">
+                    <label htmlFor="lastPaymentDate">Last Payment Made</label>
+                    <input
+                      type="date"
+                      id="lastPaymentDate"
+                      value={formData.lastPaymentDate}
+                      onChange={(e) => handleInputChange('lastPaymentDate', e.target.value)}
+                      className={errors.lastPaymentDate ? 'error' : ''}
+                    />
+                    {errors.lastPaymentDate && <span className="error-message">{errors.lastPaymentDate}</span>}
+                    <div className="help-text">Date of the last monthly payment made</div>
+                  </div>
+                )}
               </div>
 
               <div className="form-section">

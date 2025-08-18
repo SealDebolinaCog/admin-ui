@@ -7,6 +7,9 @@ exports.apiRouter = void 0;
 const express_1 = require("express");
 const users_1 = __importDefault(require("./users"));
 const auth_1 = require("./auth");
+const clients_1 = __importDefault(require("./clients"));
+const shops_1 = __importDefault(require("./shops"));
+const accounts_1 = __importDefault(require("./accounts"));
 const router = (0, express_1.Router)();
 exports.apiRouter = router;
 // API version info
@@ -17,6 +20,9 @@ router.get('/', (req, res) => {
         endpoints: {
             auth: '/api/auth',
             users: '/api/users',
+            clients: '/api/clients',
+            shops: '/api/shops',
+            accounts: '/api/accounts',
             health: '/health'
         }
     });
@@ -24,4 +30,7 @@ router.get('/', (req, res) => {
 // Route modules
 router.use('/auth', auth_1.authRouter);
 router.use('/users', users_1.default);
+router.use('/clients', clients_1.default);
+router.use('/shops', shops_1.default);
+router.use('/accounts', accounts_1.default);
 //# sourceMappingURL=api.js.map

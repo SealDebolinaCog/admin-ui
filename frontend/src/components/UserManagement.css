@@ -785,6 +785,21 @@
   color: #721c24;
 }
 
+.status-badge.suspended {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.deleted {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.invite_now {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
 .user-details {
   margin: 10px 0;
   display: flex;

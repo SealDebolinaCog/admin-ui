@@ -280,16 +280,21 @@ const ClientManagement: React.FC = () => {
   // Handle client form submission
   const handleClientFormSubmit = async (formData: any) => {
     try {
+      console.log('Form data received:', formData);
+      console.log('Phone numbers:', formData.phoneNumbers);
+      console.log('PAN card:', formData.panCard);
+      console.log('Aadhaar card:', formData.aadhaarCard);
+      
       if (editingClient) {
         // Update existing client
         const clientUpdateData = {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
-          phone: formData.phone,
+          phone: formData.phoneNumbers?.[0]?.number || '',
           kycNumber: formData.kycNumber,
-          panNumber: formData.panNumber,
-          aadhaarNumber: formData.aadhaarNumber,
+          panNumber: formData.panCard?.number || '',
+          aadhaarNumber: formData.aadhaarCard?.number || '',
           addressLine1: formData.address.addressLine1,
           addressLine2: formData.address.addressLine2,
           addressLine3: formData.address.addressLine3,
@@ -299,6 +304,8 @@ const ClientManagement: React.FC = () => {
           country: formData.address.country,
           status: mapStatusForBackend(formData.status)
         };
+
+        console.log('Client update data being sent:', clientUpdateData);
 
         const response = await axios.put(`/api/clients/${editingClient.id}`, clientUpdateData);
         if (response.data.success) {
@@ -324,10 +331,10 @@ const ClientManagement: React.FC = () => {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
-          phone: formData.phone,
+          phone: formData.phoneNumbers?.[0]?.number || '',
           kycNumber: formData.kycNumber,
-          panNumber: formData.panNumber,
-          aadhaarNumber: formData.aadhaarNumber,
+          panNumber: formData.panCard?.number || '',
+          aadhaarNumber: formData.aadhaarCard?.number || '',
           addressLine1: formData.address.addressLine1,
           addressLine2: formData.address.addressLine2,
           addressLine3: formData.address.addressLine3,
@@ -337,6 +344,8 @@ const ClientManagement: React.FC = () => {
           country: formData.address.country,
           status: mapStatusForBackend(formData.status)
         };
+
+        console.log('Client create data being sent:', clientData);
 
         const response = await axios.post('/api/clients', clientData);
         if (response.data.success) {
@@ -357,6 +366,7 @@ const ClientManagement: React.FC = () => {
     // Map the client data to match what ClientForm expects
     const mappedClient = {
       firstName: client.firstName,
+      middleName: '', // Default empty string
       lastName: client.lastName,
       email: client.email || '',
       kycNumber: client.kycNumber || '',
@@ -384,7 +394,10 @@ const ClientManagement: React.FC = () => {
         number: client.aadhaarNumber,
         verificationStatus: 'pending' as const
       } : undefined,
-      status: mapStatusForForm(client.status)
+      otherDocuments: [], // Default empty array
+      linkedClients: [], // Default empty array
+      status: mapStatusForForm(client.status),
+      accountBalance: 0 // Default value
     };
     setEditingClient(client);
     setEditingClientFormData(mappedClient);
@@ -849,7 +862,48 @@ const ClientManagement: React.FC = () => {
           client={selectedClient}
           onClose={handleCloseForms}
           onEdit={() => {
+            // Map the client data to match what ClientForm expects
+            const mappedClient = {
+              firstName: selectedClient.firstName,
+              middleName: '', // Default empty string
+              lastName: selectedClient.lastName,
+              email: selectedClient.email || '',
+              kycNumber: selectedClient.kycNumber || '',
+              phoneNumbers: selectedClient.phone ? [{
+                id: 'phone-1',
+                countryCode: '+91',
+                number: selectedClient.phone,
+                type: 'primary' as const,
+                isVerified: false
+              }] : [],
+              address: {
+                addressLine1: selectedClient.addressLine1 || '',
+                addressLine2: selectedClient.addressLine2 || '',
+                addressLine3: selectedClient.addressLine3 || '',
+                state: selectedClient.state || 'West Bengal',
+                district: selectedClient.district || 'Kolkata',
+                pincode: selectedClient.pincode || '',
+                country: selectedClient.country || 'India'
+              },
+              panCard: selectedClient.panNumber ? {
+                number: selectedClient.panNumber,
+                verificationStatus: 'pending' as const
+              } : undefined,
+              aadhaarCard: selectedClient.aadhaarNumber ? {
+                number: selectedClient.aadhaarNumber,
+                verificationStatus: 'pending' as const
+              } : undefined,
+              otherDocuments: [], // Default empty array
+              linkedClients: [], // Default empty array
+              status: mapStatusForForm(selectedClient.status),
+              accountBalance: 0 // Default value
+            };
+            
+            console.log('Selected client for editing:', selectedClient);
+            console.log('Mapped client data:', mappedClient);
+            
             setEditingClient(selectedClient);
+            setEditingClientFormData(mappedClient);
             setShowClientDetail(false);
             setShowClientForm(true);
           }}

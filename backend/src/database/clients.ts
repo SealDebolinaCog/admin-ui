@@ -106,6 +106,9 @@ export class ClientRepository {
     const fields: string[] = [];
     const values: any[] = [];
 
+    console.log('Updating client in repository with ID:', id);
+    console.log('Client data to update:', client);
+
     Object.entries(client).forEach(([key, value]) => {
       if (value !== undefined) {
         fields.push(`${key} = ?`);
@@ -116,12 +119,18 @@ export class ClientRepository {
     if (fields.length === 0) return false;
 
     fields.push('updatedAt = CURRENT_TIMESTAMP');
+    
+    // Add the id parameter for the WHERE clause
     values.push(id);
 
     const query = `UPDATE clients SET ${fields.join(', ')} WHERE id = ?`;
+    console.log('SQL Query:', query);
+    console.log('Values:', values);
+    
     const stmt = this.db.prepare(query);
     const result = stmt.run(...values);
 
+    console.log('Update result:', result);
     return result.changes > 0;
   }
 

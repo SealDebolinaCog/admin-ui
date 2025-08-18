@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import ShopForm from './ShopForm';
 import './UserManagement.css'; // Reuse the same CSS for consistent styling
+import ShopForm from './ShopForm';
+import { useMessageHandler } from '../hooks/useMessageHandler';
+import SuccessMessage from './common/SuccessMessage';
 
 interface Shop {
   id: number;
@@ -27,8 +29,7 @@ const ShopManagement: React.FC = () => {
   // State management
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { error, successMessage, setError, setSuccessMessage, clearAllMessages, clearSuccessMessage } = useMessageHandler();
   const [showAddForm, setShowAddForm] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [currentStep, setCurrentStep] = useState(1);
@@ -152,16 +153,6 @@ const ShopManagement: React.FC = () => {
       setLoading(false);
     }
   }, [currentPage, recordsPerPage, searchFilter, appliedFilters]);
-
-  // Auto-clear success message after 5 seconds
-  useEffect(() => {
-    if (successMessage) {
-      const timer = setTimeout(() => {
-        setSuccessMessage(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage]);
 
   // Load shops on component mount
   useEffect(() => {
@@ -439,7 +430,7 @@ const ShopManagement: React.FC = () => {
     setStatusChangeData(null);
     setCurrentStep(1);
     setShopFormErrors({});
-    setSuccessMessage(null); // Clear success message when closing modals
+    clearAllMessages(); // Clear success message when closing modals
   };
 
   // Filter functions
@@ -707,8 +698,8 @@ const ShopManagement: React.FC = () => {
           onClose={() => {
             setShowAddForm(false);
             setCurrentStep(1);
-            setShopFormErrors({});
-            setSuccessMessage(null); // Clear success message on close
+                    setShopFormErrors({});
+        clearAllMessages(); // Clear success message on close
           }}
           onSubmit={handleAddShop}
           mode="add"
@@ -723,7 +714,7 @@ const ShopManagement: React.FC = () => {
             setShowEditShop(false);
             // Return to view mode instead of clearing selectedShop
             setShowViewShop(true);
-            setSuccessMessage(null); // Clear success message on close
+            clearAllMessages(); // Clear success message on close
           }}
           onSubmit={handleEditShop}
           mode="edit"
@@ -1203,44 +1194,7 @@ const ShopManagement: React.FC = () => {
 
       {/* Success Message */}
       {successMessage && (
-        <div className="success-message" style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          backgroundColor: '#d4edda',
-          color: '#155724',
-          padding: '15px 20px',
-          borderRadius: '5px',
-          border: '1px solid #c3e6cb',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          maxWidth: '400px'
-        }}>
-          <span className="success-icon" style={{ fontSize: '20px' }}>✅</span>
-          <p style={{ margin: 0, flex: 1 }}>{successMessage}</p>
-          <button 
-            onClick={() => setSuccessMessage(null)} 
-            className="close-success-btn"
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '18px',
-              cursor: 'pointer',
-              color: '#155724',
-              padding: '0',
-              width: '20px',
-              height: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            ✕
-          </button>
-        </div>
+        <SuccessMessage message={successMessage} onClose={clearSuccessMessage} />
       )}
     </div>
   );

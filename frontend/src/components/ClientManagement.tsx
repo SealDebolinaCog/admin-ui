@@ -3,6 +3,8 @@ import axios from 'axios';
 import './UserManagement.css';
 import ClientForm from './ClientForm';
 import SimpleClientDetailView from './SimpleClientDetailView';
+import { useMessageHandler } from '../hooks/useMessageHandler';
+import SuccessMessage from './common/SuccessMessage';
 
 interface Client {
   id: number;
@@ -35,14 +37,14 @@ interface ApiResponse<T> {
 const ClientManagement: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { error, successMessage, setError, setSuccessMessage, clearAllMessages, clearSuccessMessage } = useMessageHandler();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [showClientDetail, setShowClientDetail] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [editingClientFormData, setEditingClientFormData] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [newClient, setNewClient] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [searchFilter, setSearchFilter] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -227,34 +229,35 @@ const ClientManagement: React.FC = () => {
     fetchClients();
   }, [appliedFilters]);
 
-  const handleSuspendClient = async (id: number) => {
+  // Suspend client
+  const handleSuspendClient = async (clientId: number) => {
     try {
-      const response = await axios.put(`/api/clients/${id}`, {
-        status: 'suspended'
-      });
+      const response = await axios.put(`/api/clients/${clientId}`, { status: 'suspended' });
       if (response.data.success) {
-        // Update the client status in the local state
-        setClients(clients.map(client => 
-          client.id === id ? { ...client, status: 'suspended' } : client
-        ));
-        alert('Client suspended successfully');
+        setSuccessMessage('Client suspended successfully!');
+        await fetchClients();
+      } else {
+        throw new Error(response.data.error || 'Failed to suspend client');
       }
     } catch (error) {
       console.error('Error suspending client:', error);
-      alert('Failed to suspend client');
+      setError('Failed to suspend client. Please try again.');
     }
   };
 
-  const deleteClient = async (id: number) => {
+  // Delete client
+  const deleteClient = async (clientId: number) => {
     try {
-      const response = await axios.delete(`/api/clients/${id}`);
+      const response = await axios.delete(`/api/clients/${clientId}`);
       if (response.data.success) {
-        setClients(clients.filter(client => client.id !== id));
-        alert('Client deleted successfully');
+        setSuccessMessage('Client deleted successfully!');
+        await fetchClients();
+      } else {
+        throw new Error(response.data.error || 'Failed to delete client');
       }
     } catch (error) {
       console.error('Error deleting client:', error);
-      alert('Failed to delete client');
+      setError('Failed to delete client. Please try again.');
     }
   };
 
@@ -274,74 +277,79 @@ const ClientManagement: React.FC = () => {
     }
   };
 
-  const handleClientFormSubmit = async (clientData: any) => {
+  // Handle client form submission
+  const handleClientFormSubmit = async (formData: any) => {
     try {
       if (editingClient) {
-        // Update existing client - map form data to backend structure
-        const updateData = {
-          firstName: clientData.firstName,
-          lastName: clientData.lastName,
-          email: clientData.email || null,
-          phone: clientData.phoneNumbers?.[0]?.number || null,
-          kycNumber: clientData.kycNumber || null,
-          panNumber: clientData.panCard?.number || null,
-          aadhaarNumber: clientData.aadhaarCard?.number || null,
-          addressLine1: clientData.address?.addressLine1 || null,
-          addressLine2: clientData.address?.addressLine2 || null,
-          addressLine3: clientData.address?.addressLine3 || null,
-          state: clientData.address?.state || null,
-          district: clientData.address?.district || null,
-          pincode: clientData.address?.pincode || null,
-          country: clientData.address?.country || 'India',
-          status: mapStatusForBackend(clientData.status) || 'active'
+        // Update existing client
+        const clientUpdateData = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          kycNumber: formData.kycNumber,
+          panNumber: formData.panNumber,
+          aadhaarNumber: formData.aadhaarNumber,
+          addressLine1: formData.address.addressLine1,
+          addressLine2: formData.address.addressLine2,
+          addressLine3: formData.address.addressLine3,
+          state: formData.address.state,
+          district: formData.address.district,
+          pincode: formData.address.pincode,
+          country: formData.address.country,
+          status: mapStatusForBackend(formData.status)
         };
 
-        console.log('Updating client with data:', updateData);
-        
-        const response = await axios.put(`/api/clients/${editingClient.id}`, updateData);
+        const response = await axios.put(`/api/clients/${editingClient.id}`, clientUpdateData);
         if (response.data.success) {
-          await fetchClients(); // Refresh the list
-          setEditingClient(null);
-          setEditingClientFormData(null);
-          setShowClientForm(false);
-          alert('Client updated successfully');
+          handleCloseForms();
+ 
+          // Refresh the shops data to show the latest changes
+          await fetchClients();
+          
+          // Update selectedShop with the response data and show view modal
+          const updatedClient = response.data.data;
+          setSelectedClient(updatedClient);
+          setShowClientDetail(true);
+          setSuccessMessage('Client updated successfully!');
+          
+          // Show success message (optional)
+          console.log('Client updated successfully');
         } else {
           throw new Error(response.data.error || 'Failed to update client');
         }
       } else {
-        // Add new client - map form data to backend structure
-        const newClientData = {
-          firstName: clientData.firstName,
-          lastName: clientData.lastName,
-          email: clientData.email || null,
-          phone: clientData.phoneNumbers?.[0]?.number || null,
-          kycNumber: clientData.kycNumber || null,
-          panNumber: clientData.panCard?.number || null,
-          aadhaarNumber: clientData.aadhaarCard?.number || null,
-          addressLine1: clientData.address?.addressLine1 || null,
-          addressLine2: clientData.address?.addressLine2 || null,
-          addressLine3: clientData.address?.addressLine3 || null,
-          state: clientData.address?.state || null,
-          district: clientData.address?.district || null,
-          pincode: clientData.address?.pincode || null,
-          country: clientData.address?.country || 'India',
-          status: mapStatusForBackend(clientData.status) || 'active'
+        // Add new client
+        const clientData = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          kycNumber: formData.kycNumber,
+          panNumber: formData.panNumber,
+          aadhaarNumber: formData.aadhaarNumber,
+          addressLine1: formData.address.addressLine1,
+          addressLine2: formData.address.addressLine2,
+          addressLine3: formData.address.addressLine3,
+          state: formData.address.state,
+          district: formData.address.district,
+          pincode: formData.address.pincode,
+          country: formData.address.country,
+          status: mapStatusForBackend(formData.status)
         };
 
-        console.log('Creating new client with data:', newClientData);
-        
-        const response = await axios.post('/api/clients', newClientData);
+        const response = await axios.post('/api/clients', clientData);
         if (response.data.success) {
-          await fetchClients(); // Refresh the list
-          setShowClientForm(false);
-          alert('Client added successfully');
+          setSuccessMessage('Client added successfully!');
+          await fetchClients();
+          handleCloseForms();
         } else {
           throw new Error(response.data.error || 'Failed to add client');
         }
       }
     } catch (error) {
       console.error('Error saving client:', error);
-      alert('Failed to save client');
+      setError('Failed to save client. Please try again.');
     }
   };
 
@@ -388,13 +396,13 @@ const ClientManagement: React.FC = () => {
     setShowClientDetail(true);
   };
 
+  // Close forms and reset state
   const handleCloseForms = () => {
-    setShowAddForm(false);
     setShowClientForm(false);
     setShowClientDetail(false);
     setEditingClient(null);
     setEditingClientFormData(null);
-    setSelectedClient(null);
+    clearAllMessages();
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -713,7 +721,7 @@ const ClientManagement: React.FC = () => {
               <table className="users-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
+                    <th>Client</th>
                     <th>Email</th>
                     <th>Phone</th>
                     <th>Address</th>
@@ -723,37 +731,67 @@ const ClientManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {clients.map(client => (
-                    <tr key={client.id}>
-                      <td>
-                        <div className="user-info">
-                          <div className="user-avatar-small">
+                    <tr key={client.id} className="user-row">
+                      <td className="client-info">
+                        <div className="client-avatar">
+                          <span className="table-avatar-initials">
                             {getUserInitials(client.firstName, client.lastName)}
-                          </div>
-                          <span>{getFullName(client.firstName, client.lastName)}</span>
+                          </span>
+                        </div>
+                        <div className="client-name">
+                          {getFullName(client.firstName, client.lastName)}
                         </div>
                       </td>
-                      <td>{client.email || 'Not provided'}</td>
-                      <td>{client.phone || 'Not provided'}</td>
-                      <td>{getAddressForUser(client)}</td>
-                      <td>
+                      <td className="mobile-cell">
+                        <div className="cell-content">
+                          {client.email || 'Not provided'}
+                        </div>
+                      </td>
+                      <td className="mobile-cell">
+                        <div className="cell-content">
+                          {client.phone || 'Not provided'}
+                        </div>
+                      </td>
+                      <td className="address-cell">
+                        <div className="cell-content">
+                          {getAddressForUser(client)}
+                        </div>
+                      </td>
+                      <td className="status-cell">
                         <span className={`table-status-badge ${client.status}`}>
                           {getStatusDisplay(client.status)}
                         </span>
                       </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button onClick={() => handleViewClient(client)} className="view-btn">
+                      <td className="actions-cell">
+                        <div className="table-actions">
+                          <button 
+                            className="table-action-btn view-btn"
+                            title="View client details"
+                            onClick={() => handleViewClient(client)}
+                          >
                             👁️
                           </button>
-                          <button onClick={() => handleEditClient(client)} className="edit-btn">
+                          <button 
+                            className="table-action-btn edit-btn"
+                            title="Edit client"
+                            onClick={() => handleEditClient(client)}
+                          >
                             ✏️
                           </button>
                           {client.status === 'active' && (
-                            <button onClick={() => handleSuspendClient(client.id)} className="suspend-btn">
+                            <button 
+                              className="table-action-btn suspend-btn"
+                              title="Suspend client"
+                              onClick={() => handleSuspendClient(client.id)}
+                            >
                               ⏸️
                             </button>
                           )}
-                          <button onClick={() => deleteClient(client.id)} className="delete-btn">
+                          <button 
+                            className="table-action-btn delete-btn"
+                            title="Delete client"
+                            onClick={() => deleteClient(client.id)}
+                          >
                             🗑️
                           </button>
                         </div>
@@ -816,6 +854,11 @@ const ClientManagement: React.FC = () => {
             setShowClientForm(true);
           }}
         />
+      )}
+
+      {/* Success Message */}
+      {successMessage && (
+        <SuccessMessage message={successMessage} onClose={clearSuccessMessage} />
       )}
     </div>
   );

@@ -23,6 +23,9 @@ interface Client {
   pincode?: string;
   country?: string;
   status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
+  linkedClientId?: string;
+  linkedClientName?: string;
+  linkedClientRelationship?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -277,6 +280,12 @@ const ClientManagement: React.FC = () => {
     }
   };
 
+  // Get client name by ID
+  const getClientNameById = (clientId: number) => {
+    const client = clients.find(c => c.id === clientId);
+    return client ? `${client.firstName} ${client.lastName}`.trim() : `Client #${clientId}`;
+  };
+
   // Handle client form submission
   const handleClientFormSubmit = async (formData: any) => {
     try {
@@ -284,6 +293,7 @@ const ClientManagement: React.FC = () => {
       console.log('Phone numbers:', formData.phoneNumbers);
       console.log('PAN card:', formData.panCard);
       console.log('Aadhaar card:', formData.aadhaarCard);
+      console.log('Linked clients:', formData.linkedClients);
       
       if (editingClient) {
         // Update existing client
@@ -302,7 +312,11 @@ const ClientManagement: React.FC = () => {
           district: formData.address.district,
           pincode: formData.address.pincode,
           country: formData.address.country,
-          status: mapStatusForBackend(formData.status)
+          status: mapStatusForBackend(formData.status),
+          linkedClientId: formData.linkedClients?.[0]?.clientId?.toString() || '',
+          linkedClientName: formData.linkedClients?.[0] ? 
+            getClientNameById(formData.linkedClients[0].clientId) : '',
+          linkedClientRelationship: formData.linkedClients?.[0]?.relationshipType || ''
         };
 
         console.log('Client update data being sent:', clientUpdateData);
@@ -342,7 +356,11 @@ const ClientManagement: React.FC = () => {
           district: formData.address.district,
           pincode: formData.address.pincode,
           country: formData.address.country,
-          status: mapStatusForBackend(formData.status)
+          status: mapStatusForBackend(formData.status),
+          linkedClientId: formData.linkedClients?.[0]?.clientId?.toString() || '',
+          linkedClientName: formData.linkedClients?.[0] ? 
+            getClientNameById(formData.linkedClients[0].clientId) : '',
+          linkedClientRelationship: formData.linkedClients?.[0]?.relationshipType || ''
         };
 
         console.log('Client create data being sent:', clientData);
@@ -395,9 +413,17 @@ const ClientManagement: React.FC = () => {
         verificationStatus: 'pending' as const
       } : undefined,
       otherDocuments: [], // Default empty array
-      linkedClients: [], // Default empty array
+      linkedClients: client.linkedClientId ? [{
+        clientId: parseInt(client.linkedClientId),
+        relationshipType: (client.linkedClientRelationship || 'other') as 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other',
+        relationshipDescription: '', // We'll get this from the linked client data
+        linkedAt: new Date().toISOString()
+      }] : [],
       status: mapStatusForForm(client.status),
-      accountBalance: 0 // Default value
+      accountBalance: 0, // Default value
+      linkedClientId: client.linkedClientId || '',
+      linkedClientName: client.linkedClientName || '',
+      linkedClientRelationship: client.linkedClientRelationship || ''
     };
     setEditingClient(client);
     setEditingClientFormData(mappedClient);
@@ -894,9 +920,17 @@ const ClientManagement: React.FC = () => {
                 verificationStatus: 'pending' as const
               } : undefined,
               otherDocuments: [], // Default empty array
-              linkedClients: [], // Default empty array
+              linkedClients: selectedClient.linkedClientId ? [{
+                clientId: parseInt(selectedClient.linkedClientId),
+                relationshipType: (selectedClient.linkedClientRelationship || 'other') as 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other',
+                relationshipDescription: '', // We'll get this from the linked client data
+                linkedAt: new Date().toISOString()
+              }] : [],
               status: mapStatusForForm(selectedClient.status),
-              accountBalance: 0 // Default value
+              accountBalance: 0, // Default value
+              linkedClientId: selectedClient.linkedClientId || '',
+              linkedClientName: selectedClient.linkedClientName || '',
+              linkedClientRelationship: selectedClient.linkedClientRelationship || ''
             };
             
             console.log('Selected client for editing:', selectedClient);

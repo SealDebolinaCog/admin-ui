@@ -19,6 +19,9 @@ interface SimpleClient {
   pincode?: string;
   country?: string;
   status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
+  linkedClientId?: string;
+  linkedClientName?: string;
+  linkedClientRelationship?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -136,6 +139,23 @@ const SimpleClientDetailView: React.FC<SimpleClientDetailViewProps> = ({ client,
               <span className="detail-value">{formatDate(client.updatedAt)}</span>
             </div>
           </div>
+
+          {/* Linked Client Information */}
+          {client.linkedClientId && (
+            <div className="form-section">
+              <h4>Linked Client</h4>
+              <div className="detail-row">
+                <span className="detail-label">Linked Client Name:</span>
+                <span className="detail-value">{client.linkedClientName || 'N/A'}</span>
+              </div>
+              {client.linkedClientRelationship && (
+                <div className="detail-row">
+                  <span className="detail-label">Relationship Type:</span>
+                  <span className="detail-value">{client.linkedClientRelationship.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="form-actions">
             <button 

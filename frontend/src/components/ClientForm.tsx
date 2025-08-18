@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './ClientForm.css';
+import ClientSearchDropdown from './ClientSearchDropdown';
 
 // Client interfaces (matching backend)
 interface PhoneNumber {
@@ -76,6 +77,11 @@ interface ClientFormData {
   // Account information
   status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
   accountBalance?: number;
+  
+  // Linked client information (for single linked client)
+  linkedClientId?: string;
+  linkedClientName?: string;
+  linkedClientRelationship?: string;
 }
 
 interface ClientFormProps {
@@ -164,8 +170,8 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
       addressLine2: '',
       addressLine3: '',
       state: 'West Bengal',
-      district: 'Nadia',
-      pincode: '741501',
+      district: 'Kolkata',
+      pincode: '',
       country: 'India'
     },
     kycNumber: '',
@@ -179,28 +185,109 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
     }],
     panCard: {
       number: '',
+      imageUrl: '',
       verificationStatus: 'pending'
     },
     aadhaarCard: {
       number: '',
+      imageUrl: '',
       verificationStatus: 'pending'
     },
     otherDocuments: [],
     linkedClients: [],
     status: 'invite_now',
-    accountBalance: 0
+    accountBalance: 0,
+    linkedClientId: '',
+    linkedClientName: '',
+    linkedClientRelationship: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currentStep, setCurrentStep] = useState(1);
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
+  const [showRelationshipModal, setShowRelationshipModal] = useState(false);
+  const [selectedClientForLinking, setSelectedClientForLinking] = useState<any>(null);
+  const [relationshipType, setRelationshipType] = useState<'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other'>('other');
+  const [relationshipDescription, setRelationshipDescription] = useState('');
+  const [linkedClientsData, setLinkedClientsData] = useState<any[]>([]);
 
   // Initialize form with initial data
   useEffect(() => {
     if (initialData) {
       setFormData(prev => ({ ...prev, ...initialData }));
+      // Load linked clients data if available
+      if (initialData.linkedClients && initialData.linkedClients.length > 0) {
+        loadLinkedClientsData(initialData.linkedClients);
+      }
+      // If we have a linkedClientId but no linkedClients array (from editing), fetch the linked client data
+      if (initialData.linkedClientId && (!initialData.linkedClients || initialData.linkedClients.length === 0)) {
+        loadLinkedClientData(parseInt(initialData.linkedClientId));
+      }
     }
   }, [initialData]);
+
+  // Load linked clients data
+  const loadLinkedClientsData = async (linkedClients: LinkedClient[]) => {
+    try {
+      const clientIds = linkedClients.map(lc => lc.clientId);
+      const clientsData = [];
+      
+      for (const clientId of clientIds) {
+        try {
+          const response = await fetch(`/api/clients/${clientId}`);
+          if (response.ok) {
+            const clientData = await response.json();
+            if (clientData.success) {
+              clientsData.push(clientData.data);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching client ${clientId}:`, error);
+        }
+      }
+      
+      setLinkedClientsData(clientsData);
+    } catch (error) {
+      console.error('Error loading linked clients data:', error);
+    }
+  };
+
+  // Load single linked client data
+  const loadLinkedClientData = async (clientId: number) => {
+    try {
+      const response = await fetch(`/api/clients/${clientId}`);
+      if (response.ok) {
+        const clientData = await response.json();
+        if (clientData.success) {
+          setLinkedClientsData([clientData.data]);
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching linked client ${clientId}:`, error);
+    }
+  };
+
+  // Get client name by ID
+  const getClientNameById = (clientId: number) => {
+    const client = linkedClientsData.find(c => c.id === clientId);
+    return client ? `${client.firstName} ${client.lastName}`.trim() : `Client #${clientId}`;
+  };
+
+  // Get client name by ID from all clients (for editing)
+  const getClientNameByIdFromAll = (clientId: number) => {
+    // First try to find in linkedClientsData
+    const client = linkedClientsData.find(c => c.id === clientId);
+    if (client) {
+      return `${client.firstName} ${client.lastName}`.trim();
+    }
+    
+    // If not found, try to fetch from API
+    if (initialData?.linkedClientId) {
+      return initialData.linkedClientName || `Client #${clientId}`;
+    }
+    
+    return `Client #${clientId}`;
+  };
 
   // Update districts when state changes
   useEffect(() => {
@@ -933,6 +1020,62 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
+  const addLinkedClient = (selectedClient: any) => {
+    setSelectedClientForLinking(selectedClient);
+    setRelationshipType('other'); // Reset relationship type
+    setRelationshipDescription(''); // Reset description
+    setShowRelationshipModal(true);
+  };
+
+  const removeLinkedClient = (index: number) => {
+    const linkedClientToRemove = formData.linkedClients[index];
+    setFormData(prev => ({
+      ...prev,
+      linkedClients: prev.linkedClients.filter((_, i) => i !== index)
+    }));
+    
+    // Remove the client from the linked clients data
+    setLinkedClientsData(prev => prev.filter(client => client.id !== linkedClientToRemove.clientId));
+  };
+
+  const handleRelationshipTypeChange = (type: 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other') => {
+    setRelationshipType(type);
+  };
+
+  const handleRelationshipDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setRelationshipDescription(e.target.value);
+  };
+
+  const confirmLinkedClient = () => {
+    if (selectedClientForLinking) {
+      const newLinkedClient: LinkedClient = {
+        clientId: selectedClientForLinking.id,
+        relationshipType: relationshipType,
+        relationshipDescription: relationshipDescription || undefined,
+        linkedAt: new Date().toISOString()
+      };
+      setFormData(prev => ({
+        ...prev,
+        linkedClients: [...prev.linkedClients, newLinkedClient]
+      }));
+      
+      // Add the new client to the linked clients data
+      setLinkedClientsData(prev => [...prev, selectedClientForLinking]);
+      
+      setShowRelationshipModal(false);
+      setSelectedClientForLinking(null);
+      setRelationshipType('other');
+      setRelationshipDescription('');
+    }
+  };
+
+  const cancelLinkedClient = () => {
+    setShowRelationshipModal(false);
+    setSelectedClientForLinking(null);
+    setRelationshipType('other');
+    setRelationshipDescription('');
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -1358,17 +1501,50 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                 <p className="section-description">
                   Link this client to other existing clients (family members, business partners, etc.)
                 </p>
-                {/* Linked clients functionality can be expanded */}
-                <button
-                  type="button"
-                  className="add-link-btn"
-                  onClick={() => {
-                    // Add linked client functionality
-                    console.log('Add linked client');
-                  }}
-                >
-                  + Add Linked Client
-                </button>
+                
+                {/* Display existing linked clients */}
+                {formData.linkedClients && formData.linkedClients.length > 0 && (
+                  <div className="linked-clients-list">
+                    {formData.linkedClients.map((linkedClient, index) => (
+                      <div key={index} className="linked-client-item">
+                        <div className="linked-client-info">
+                          <div className="linked-client-name">
+                            {getClientNameByIdFromAll(linkedClient.clientId)}
+                          </div>
+                          <div className="linked-client-relationship">
+                            <span className="relationship-type">{linkedClient.relationshipType.replace('_', ' ')}</span>
+                            {linkedClient.relationshipDescription && (
+                              <span className="relationship-description">: {linkedClient.relationshipDescription}</span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="remove-linked-client-btn"
+                          onClick={() => removeLinkedClient(index)}
+                          title="Remove linked client"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add new linked client */}
+                <div className="add-linked-client-section">
+                  <ClientSearchDropdown
+                    value=""
+                    onChange={() => {}} // This will be handled by onClientSelect
+                    placeholder="Search and select clients to link"
+                    onClientSelect={(selectedClient) => {
+                      addLinkedClient(selectedClient);
+                    }}
+                  />
+                  <div className="help-text">
+                    Start typing to search for existing clients in the database
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1395,6 +1571,49 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
             </button>
           </div>
         </form>
+
+        {/* Relationship Modal */}
+        {showRelationshipModal && selectedClientForLinking && (
+          <div className="relationship-modal-overlay">
+            <div className="relationship-modal-content">
+              <h3>Link Client</h3>
+              <p>Linking {selectedClientForLinking.firstName} {selectedClientForLinking.lastName} to this client.</p>
+              
+              <div className="form-group">
+                <label>Relationship Type:</label>
+                <select
+                  value={relationshipType}
+                  onChange={(e) => handleRelationshipTypeChange(e.target.value as 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other')}
+                >
+                  {RELATIONSHIP_TYPES.map(type => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Relationship Description (Optional):</label>
+                <textarea
+                  value={relationshipDescription}
+                  onChange={handleRelationshipDescriptionChange}
+                  rows={3}
+                  placeholder="e.g., Spouse, Parent, Business Partner"
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" onClick={confirmLinkedClient} className="btn-primary">
+                  Confirm Link
+                </button>
+                <button type="button" onClick={cancelLinkedClient} className="btn-cancel">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -33,6 +33,9 @@ export function initializeDatabase() {
       pincode TEXT,
       country TEXT DEFAULT 'India',
       status TEXT DEFAULT 'active' CHECK (status IN ('invite_now', 'pending', 'active', 'suspended', 'deleted')),
+      linkedClientId TEXT,
+      linkedClientName TEXT,
+      linkedClientRelationship TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -67,6 +70,9 @@ export function initializeDatabase() {
           pincode TEXT,
           country TEXT DEFAULT 'India',
           status TEXT DEFAULT 'active' CHECK (status IN ('invite_now', 'pending', 'active', 'suspended', 'deleted')),
+          linkedClientId TEXT,
+          linkedClientName TEXT,
+          linkedClientRelationship TEXT,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
           updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -76,11 +82,13 @@ export function initializeDatabase() {
       db.exec(`
         INSERT INTO clients_new (
           id, firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
-          addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt
+          addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt,
+          linkedClientId, linkedClientName, linkedClientRelationship
         )
         SELECT 
           id, firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
-          addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt
+          addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt,
+          NULL, NULL, NULL
         FROM clients
       `);
       

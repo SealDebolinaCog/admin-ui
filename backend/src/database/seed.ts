@@ -28,7 +28,10 @@ export async function seedDatabase() {
       state: 'Maharashtra',
       district: 'Mumbai',
       pincode: '400001',
-      status: 'active' as const
+      status: 'active' as const,
+      linkedClientId: '2', // Link to Alice Johnson
+      linkedClientName: 'Alice Johnson',
+      linkedClientRelationship: 'spouse'
     },
     {
       firstName: 'Alice',
@@ -43,7 +46,10 @@ export async function seedDatabase() {
       state: 'Delhi',
       district: 'New Delhi',
       pincode: '110001',
-      status: 'active' as const
+      status: 'active' as const,
+      linkedClientId: '1', // Link to John Doe
+      linkedClientName: 'John Doe',
+      linkedClientRelationship: 'spouse'
     },
     {
       firstName: 'Michael',
@@ -62,7 +68,24 @@ export async function seedDatabase() {
   ];
 
   sampleClients.forEach(client => {
-    clientRepo.create(client);
+    clientRepo.create({
+      firstName: client.firstName,
+      lastName: client.lastName,
+      email: client.email,
+      phone: client.phone,
+      kycNumber: client.kycNumber,
+      panNumber: client.panNumber,
+      aadhaarNumber: client.aadhaarNumber,
+      addressLine1: client.addressLine1,
+      addressLine2: client.addressLine2,
+      state: client.state,
+      district: client.district,
+      pincode: client.pincode,
+      status: client.status,
+      linkedClientId: client.linkedClientId,
+      linkedClientName: client.linkedClientName,
+      linkedClientRelationship: client.linkedClientRelationship
+    });
   });
 
   // Seed Shops

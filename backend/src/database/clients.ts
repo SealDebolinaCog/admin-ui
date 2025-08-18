@@ -17,6 +17,9 @@ export interface Client {
   pincode?: string;
   country?: string;
   status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
+  linkedClientId?: string;
+  linkedClientName?: string;
+  linkedClientRelationship?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -76,8 +79,9 @@ export class ClientRepository {
       INSERT INTO clients (
         firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
         addressLine1, addressLine2, addressLine3,
-        state, district, pincode, country, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        state, district, pincode, country, status,
+        linkedClientId, linkedClientName, linkedClientRelationship
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -95,7 +99,10 @@ export class ClientRepository {
       client.district || null,
       client.pincode || null,
       client.country || 'India',
-      client.status
+      client.status,
+      client.linkedClientId || null,
+      client.linkedClientName || null,
+      client.linkedClientRelationship || null
     );
 
     return { ...client, id: result.lastInsertRowid as number };

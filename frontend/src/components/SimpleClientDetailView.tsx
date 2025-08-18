@@ -7,6 +7,9 @@ interface SimpleClient {
   lastName: string;
   email?: string;
   phone?: string;
+  kycNumber?: string;
+  panNumber?: string;
+  aadhaarNumber?: string;
   addressLine1?: string;
   addressLine2?: string;
   addressLine3?: string;
@@ -14,8 +17,6 @@ interface SimpleClient {
   district?: string;
   pincode?: string;
   country?: string;
-  nomineeName?: string;
-  nomineeRelation?: string;
   status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
   createdAt?: string;
   updatedAt?: string;
@@ -125,6 +126,10 @@ const SimpleClientDetailView: React.FC<SimpleClientDetailViewProps> = ({ client,
             </div>
 
             <div className="detail-section">
+              <h3>KYC & Identity Documents</h3>
+            </div>
+
+            <div className="detail-section">
               <h3>Address Information</h3>
               <div className="detail-row">
                 <span className="detail-label">Full Address:</span>
@@ -148,18 +153,6 @@ const SimpleClientDetailView: React.FC<SimpleClientDetailViewProps> = ({ client,
                   <span className="detail-value">{client.pincode}</span>
                 </div>
               )}
-            </div>
-
-            <div className="detail-section">
-              <h3>Nominee Information</h3>
-              <div className="detail-row">
-                <span className="detail-label">Nominee Name:</span>
-                <span className="detail-value">{client.nomineeName || 'Not provided'}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Relationship:</span>
-                <span className="detail-value">{client.nomineeRelation || 'Not provided'}</span>
-              </div>
             </div>
 
             <div className="detail-section">

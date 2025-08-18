@@ -6,6 +6,9 @@ export interface Client {
   lastName: string;
   email?: string;
   phone?: string;
+  kycNumber?: string;
+  panNumber?: string;
+  aadhaarNumber?: string;
   addressLine1?: string;
   addressLine2?: string;
   addressLine3?: string;
@@ -13,9 +16,7 @@ export interface Client {
   district?: string;
   pincode?: string;
   country?: string;
-  nomineeName?: string;
-  nomineeRelation?: string;
-  status: 'active' | 'suspended' | 'closed';
+  status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -73,9 +74,10 @@ export class ClientRepository {
   create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>): Client {
     const stmt = this.db.prepare(`
       INSERT INTO clients (
-        firstName, lastName, email, phone, addressLine1, addressLine2, addressLine3,
-        state, district, pincode, country, nomineeName, nomineeRelation, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
+        addressLine1, addressLine2, addressLine3,
+        state, district, pincode, country, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -83,6 +85,9 @@ export class ClientRepository {
       client.lastName,
       client.email || null,
       client.phone || null,
+      client.kycNumber || null,
+      client.panNumber || null,
+      client.aadhaarNumber || null,
       client.addressLine1 || null,
       client.addressLine2 || null,
       client.addressLine3 || null,
@@ -90,8 +95,6 @@ export class ClientRepository {
       client.district || null,
       client.pincode || null,
       client.country || 'India',
-      client.nomineeName || null,
-      client.nomineeRelation || null,
       client.status
     );
 

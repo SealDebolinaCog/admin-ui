@@ -10,6 +10,9 @@ interface Client {
   lastName: string;
   email?: string;
   phone?: string;
+  kycNumber?: string;
+  panNumber?: string;
+  aadhaarNumber?: string;
   addressLine1?: string;
   addressLine2?: string;
   addressLine3?: string;
@@ -17,8 +20,6 @@ interface Client {
   district?: string;
   pincode?: string;
   country?: string;
-  nomineeName?: string;
-  nomineeRelation?: string;
   status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
   createdAt?: string;
   updatedAt?: string;
@@ -40,6 +41,7 @@ const ClientManagement: React.FC = () => {
   const [showClientDetail, setShowClientDetail] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editingClientFormData, setEditingClientFormData] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [newClient, setNewClient] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [searchFilter, setSearchFilter] = useState('');
@@ -56,8 +58,7 @@ const ClientManagement: React.FC = () => {
     addressLine1: '',
     state: '',
     district: '',
-    pincode: '',
-    nomineeName: ''
+    pincode: ''
   });
 
   // Applied filters state
@@ -70,8 +71,7 @@ const ClientManagement: React.FC = () => {
     addressLine1: '',
     state: '',
     district: '',
-    pincode: '',
-    nomineeName: ''
+    pincode: ''
   });
 
   // Pagination state
@@ -135,6 +135,24 @@ const ClientManagement: React.FC = () => {
       case 'pending':
       case 'invite_now':
         return status as any;
+      default:
+        return 'active';
+    }
+  };
+
+  // Map form status to backend status
+  const mapStatusForBackend = (status: string): 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted' => {
+    switch (status) {
+      case 'invite_now':
+        return 'invite_now';
+      case 'pending':
+        return 'pending';
+      case 'active':
+        return 'active';
+      case 'suspended':
+        return 'suspended';
+      case 'deleted':
+        return 'deleted';
       default:
         return 'active';
     }
@@ -259,21 +277,66 @@ const ClientManagement: React.FC = () => {
   const handleClientFormSubmit = async (clientData: any) => {
     try {
       if (editingClient) {
-        // Update existing client
-        const response = await axios.put(`/api/clients/${editingClient.id}`, clientData);
+        // Update existing client - map form data to backend structure
+        const updateData = {
+          firstName: clientData.firstName,
+          lastName: clientData.lastName,
+          email: clientData.email || null,
+          phone: clientData.phoneNumbers?.[0]?.number || null,
+          kycNumber: clientData.kycNumber || null,
+          panNumber: clientData.panCard?.number || null,
+          aadhaarNumber: clientData.aadhaarCard?.number || null,
+          addressLine1: clientData.address?.addressLine1 || null,
+          addressLine2: clientData.address?.addressLine2 || null,
+          addressLine3: clientData.address?.addressLine3 || null,
+          state: clientData.address?.state || null,
+          district: clientData.address?.district || null,
+          pincode: clientData.address?.pincode || null,
+          country: clientData.address?.country || 'India',
+          status: mapStatusForBackend(clientData.status) || 'active'
+        };
+
+        console.log('Updating client with data:', updateData);
+        
+        const response = await axios.put(`/api/clients/${editingClient.id}`, updateData);
         if (response.data.success) {
           await fetchClients(); // Refresh the list
           setEditingClient(null);
+          setEditingClientFormData(null);
           setShowClientForm(false);
           alert('Client updated successfully');
+        } else {
+          throw new Error(response.data.error || 'Failed to update client');
         }
       } else {
-        // Add new client
-        const response = await axios.post('/api/clients', clientData);
+        // Add new client - map form data to backend structure
+        const newClientData = {
+          firstName: clientData.firstName,
+          lastName: clientData.lastName,
+          email: clientData.email || null,
+          phone: clientData.phoneNumbers?.[0]?.number || null,
+          kycNumber: clientData.kycNumber || null,
+          panNumber: clientData.panCard?.number || null,
+          aadhaarNumber: clientData.aadhaarCard?.number || null,
+          addressLine1: clientData.address?.addressLine1 || null,
+          addressLine2: clientData.address?.addressLine2 || null,
+          addressLine3: clientData.address?.addressLine3 || null,
+          state: clientData.address?.state || null,
+          district: clientData.address?.district || null,
+          pincode: clientData.address?.pincode || null,
+          country: clientData.address?.country || 'India',
+          status: mapStatusForBackend(clientData.status) || 'active'
+        };
+
+        console.log('Creating new client with data:', newClientData);
+        
+        const response = await axios.post('/api/clients', newClientData);
         if (response.data.success) {
           await fetchClients(); // Refresh the list
           setShowClientForm(false);
           alert('Client added successfully');
+        } else {
+          throw new Error(response.data.error || 'Failed to add client');
         }
       }
     } catch (error) {
@@ -285,10 +348,38 @@ const ClientManagement: React.FC = () => {
   const handleEditClient = (client: Client) => {
     // Map the client data to match what ClientForm expects
     const mappedClient = {
-      ...client,
+      firstName: client.firstName,
+      lastName: client.lastName,
+      email: client.email || '',
+      kycNumber: client.kycNumber || '',
+      phoneNumbers: client.phone ? [{
+        id: 'phone-1',
+        countryCode: '+91',
+        number: client.phone,
+        type: 'primary' as const,
+        isVerified: false
+      }] : [],
+      address: {
+        addressLine1: client.addressLine1 || '',
+        addressLine2: client.addressLine2 || '',
+        addressLine3: client.addressLine3 || '',
+        state: client.state || 'West Bengal',
+        district: client.district || 'Kolkata',
+        pincode: client.pincode || '',
+        country: client.country || 'India'
+      },
+      panCard: client.panNumber ? {
+        number: client.panNumber,
+        verificationStatus: 'pending' as const
+      } : undefined,
+      aadhaarCard: client.aadhaarNumber ? {
+        number: client.aadhaarNumber,
+        verificationStatus: 'pending' as const
+      } : undefined,
       status: mapStatusForForm(client.status)
     };
-    setEditingClient(mappedClient);
+    setEditingClient(client);
+    setEditingClientFormData(mappedClient);
     setShowClientForm(true);
   };
 
@@ -302,6 +393,7 @@ const ClientManagement: React.FC = () => {
     setShowClientForm(false);
     setShowClientDetail(false);
     setEditingClient(null);
+    setEditingClientFormData(null);
     setSelectedClient(null);
   };
 
@@ -335,8 +427,7 @@ const ClientManagement: React.FC = () => {
       addressLine1: '',
       state: '',
       district: '',
-      pincode: '',
-      nomineeName: ''
+      pincode: ''
     };
     
     setFilters(emptyFilters);
@@ -356,7 +447,6 @@ const ClientManagement: React.FC = () => {
     if (appliedAdvancedSearch.state) count++;
     if (appliedAdvancedSearch.district) count++;
     if (appliedAdvancedSearch.pincode) count++;
-    if (appliedAdvancedSearch.nomineeName) count++;
     return count;
   };
 
@@ -594,12 +684,6 @@ const ClientManagement: React.FC = () => {
                       <span className="detail-label">Address:</span>
                       <span className="detail-value">{getAddressForUser(client)}</span>
                     </div>
-                    {client.nomineeName && (
-                      <div className="detail-row">
-                        <span className="detail-label">Nominee:</span>
-                        <span className="detail-value">{client.nomineeName}</span>
-                      </div>
-                    )}
                   </div>
                   
                   <div className="user-card-actions">
@@ -634,7 +718,6 @@ const ClientManagement: React.FC = () => {
                     <th>Phone</th>
                     <th>Address</th>
                     <th>Status</th>
-                    <th>Nominee</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -657,7 +740,6 @@ const ClientManagement: React.FC = () => {
                           {getStatusDisplay(client.status)}
                         </span>
                       </td>
-                      <td>{client.nomineeName || 'Not provided'}</td>
                       <td>
                         <div className="action-buttons">
                           <button onClick={() => handleViewClient(client)} className="view-btn">
@@ -719,7 +801,7 @@ const ClientManagement: React.FC = () => {
           isOpen={showClientForm}
           onClose={handleCloseForms}
           onSubmit={handleClientFormSubmit}
-          initialData={editingClient || undefined}
+          initialData={editingClientFormData || undefined}
           mode={editingClient ? 'edit' : 'add'}
         />
       )}

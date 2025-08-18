@@ -20,13 +20,14 @@ export async function seedDatabase() {
       lastName: 'Doe',
       email: 'john.doe@example.com',
       phone: '9876543210',
+      kycNumber: 'KYC001234567',
+      panNumber: 'ABCDE1234F',
+      aadhaarNumber: '123456789012',
       addressLine1: '123 Main Street',
       addressLine2: 'Apt 4B',
       state: 'Maharashtra',
       district: 'Mumbai',
       pincode: '400001',
-      nomineeName: 'Jane Doe',
-      nomineeRelation: 'Spouse',
       status: 'active' as const
     },
     {
@@ -34,13 +35,14 @@ export async function seedDatabase() {
       lastName: 'Johnson',
       email: 'alice.johnson@example.com',
       phone: '8765432109',
+      kycNumber: 'KYC009876543',
+      panNumber: 'FGHIJ5678K',
+      aadhaarNumber: '987654321098',
       addressLine1: '456 Park Avenue',
       addressLine2: 'Suite 10',
       state: 'Delhi',
       district: 'New Delhi',
       pincode: '110001',
-      nomineeName: 'Bob Johnson',
-      nomineeRelation: 'Father',
       status: 'active' as const
     },
     {
@@ -48,12 +50,13 @@ export async function seedDatabase() {
       lastName: 'Brown',
       email: 'michael.brown@example.com',
       phone: '7654321098',
+      kycNumber: 'KYC005555555',
+      panNumber: 'LMNOP9012Q',
+      aadhaarNumber: '555555555555',
       addressLine1: '789 Oak Road',
       state: 'Karnataka',
       district: 'Bangalore',
       pincode: '560001',
-      nomineeName: 'Sarah Brown',
-      nomineeRelation: 'Sister',
       status: 'suspended' as const
     }
   ];

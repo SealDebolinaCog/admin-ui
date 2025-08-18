@@ -44,7 +44,7 @@ export function initializeDatabase() {
       shopName TEXT NOT NULL,
       shopType TEXT,
       category TEXT,
-      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'suspended')),
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended', 'inactive')),
       ownerName TEXT NOT NULL,
       ownerEmail TEXT,
       ownerPhone TEXT,

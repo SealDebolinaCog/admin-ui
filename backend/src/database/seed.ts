@@ -104,6 +104,32 @@ export async function seedDatabase() {
       state: 'Tamil Nadu',
       district: 'Chennai',
       pincode: '600001'
+    },
+    {
+      shopName: 'Pending Approval Shop',
+      shopType: 'Service',
+      category: 'Consulting',
+      status: 'pending' as const,
+      ownerName: 'Robert Chen',
+      ownerEmail: 'robert@pendingconsulting.com',
+      ownerPhone: '3210987654',
+      addressLine1: '456 Approval Lane',
+      state: 'Karnataka',
+      district: 'Bangalore',
+      pincode: '560002'
+    },
+    {
+      shopName: 'Inactive Business',
+      shopType: 'Retail',
+      category: 'Electronics',
+      status: 'inactive' as const,
+      ownerName: 'Maria Garcia',
+      ownerEmail: 'maria@inactiveelectronics.com',
+      ownerPhone: '2109876543',
+      addressLine1: '789 Closed Street',
+      state: 'Delhi',
+      district: 'New Delhi',
+      pincode: '110002'
     }
   ];
 

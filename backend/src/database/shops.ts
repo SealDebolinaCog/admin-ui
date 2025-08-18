@@ -5,7 +5,7 @@ export interface Shop {
   shopName: string;
   shopType?: string;
   category?: string;
-  status: 'active' | 'suspended';
+  status: 'active' | 'pending' | 'suspended' | 'inactive';
   ownerName: string;
   ownerEmail?: string;
   ownerPhone?: string;

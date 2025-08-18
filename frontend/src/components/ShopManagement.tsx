@@ -7,16 +7,20 @@ interface Shop {
   id: number;
   shopName: string;
   ownerName: string;
-  email: string;
-  phone?: string;
-  address?: string;
+  ownerEmail?: string;
+  ownerPhone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  addressLine3?: string;
+  state?: string;
+  district?: string;
+  pincode?: string;
+  country?: string;
   category: string;
-  shopType?: string; // Added shopType
-  status?: 'active' | 'pending' | 'suspended' | 'inactive';
-  registrationDate?: string;
-  lastActivity?: string;
-  revenue?: number;
-
+  shopType?: string;
+  status: 'active' | 'pending' | 'suspended' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const ShopManagement: React.FC = () => {
@@ -24,8 +28,9 @@ const ShopManagement: React.FC = () => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [currentStep, setCurrentStep] = useState(1);
   const [shopFormData, setShopFormData] = useState({
     shopName: '',
@@ -36,8 +41,8 @@ const ShopManagement: React.FC = () => {
       addressLine2: '',
       addressLine3: '',
       state: 'West Bengal',
-      district: 'Nadia',
-      pincode: '741501',
+      district: 'Kolkata',
+      pincode: '',
       country: 'India'
     },
     email: '',
@@ -51,6 +56,18 @@ const ShopManagement: React.FC = () => {
   const [showViewShop, setShowViewShop] = useState(false);
   const [showEditShop, setShowEditShop] = useState(false);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+  
+  // Delete confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [shopToDelete, setShopToDelete] = useState<Shop | null>(null);
+  
+  // Status change confirmation modal state
+  const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+  const [statusChangeData, setStatusChangeData] = useState<{
+    shop: Shop;
+    newStatus: 'active' | 'pending' | 'suspended' | 'inactive';
+    action: string;
+  } | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,42 +103,8 @@ const ShopManagement: React.FC = () => {
     'Purba Medinipur', 'Purulia', 'South 24 Parganas', 'Uttar Dinajpur'
   ];
 
-  // Generate mock shops data
-  const generateMockShops = (): Shop[] => {
-    const shops: Shop[] = [];
-    const shopNames = ['Tech Store', 'Fashion Hub', 'Food Corner', 'Book World', 'Sports Zone', 'Home Decor', 'Electronics Plus', 'Beauty Salon'];
-    const ownerNames = ['Rajesh Kumar', 'Priya Sharma', 'Amit Patel', 'Sunita Singh', 'Vivek Gupta', 'Ananya Reddy', 'Rohit Yadav', 'Kavya Nair'];
-    const categories = ['electronics', 'clothing', 'food', 'healthcare', 'automotive', 'beauty', 'home', 'sports', 'books', 'jewelry', 'pharmaceuticals', 'hardware', 'furniture', 'other'];
-    const shopTypes = ['retail', 'wholesale', 'ecommerce', 'service', 'restaurant', 'other'];
-    const statuses: ('active' | 'suspended')[] = ['active', 'suspended'];
-    const addresses = ['MG Road, Mumbai', 'Park Street, Kolkata', 'Brigade Road, Bangalore', 'Connaught Place, Delhi'];
-
-    for (let i = 1; i <= 100; i++) {
-      const shopName = `${shopNames[Math.floor(Math.random() * shopNames.length)]} ${i}`;
-      const ownerName = ownerNames[Math.floor(Math.random() * ownerNames.length)];
-      const category = categories[Math.floor(Math.random() * categories.length)];
-      const shopType = shopTypes[Math.floor(Math.random() * shopTypes.length)];
-      
-      shops.push({
-        id: i,
-        shopName,
-        ownerName,
-        email: `${shopName.toLowerCase().replace(/\s+/g, '')}${i}@shop.com`,
-        phone: `${Math.floor(Math.random() * 4) + 6}${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}`,
-        address: addresses[Math.floor(Math.random() * addresses.length)],
-        category,
-        shopType,
-        status: statuses[Math.floor(Math.random() * statuses.length)],
-        registrationDate: `2023-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-        lastActivity: Math.random() > 0.3 ? `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}` : undefined,
-        revenue: Math.floor(Math.random() * 1000000) + 50000,
-    
-      });
-    }
-    return shops;
-  };
-
-  const mockShops: Shop[] = generateMockShops();
+  // API base URL
+  const API_BASE_URL = '/api/shops';
 
   // Search and filter functions
   const handleSearchChange = (search: string) => {
@@ -133,60 +116,35 @@ const ShopManagement: React.FC = () => {
     try {
       setLoading(true);
       
-      // Simulate API call with mock data
-      let filteredShops = [...mockShops];
+      // Build query parameters for the API
+      const params = new URLSearchParams();
+      if (page) params.append('page', page.toString());
+      if (limit) params.append('limit', limit.toString());
+      if (search && search.length >= 3) params.append('search', search);
       
-      // Apply search filter (minimum 3 characters)
-      if (search && search.length >= 3) {
-        const searchLower = search.toLowerCase();
-        filteredShops = filteredShops.filter(shop => 
-          shop.shopName.toLowerCase().includes(searchLower) ||
-          shop.ownerName.toLowerCase().includes(searchLower) ||
-          shop.email?.toLowerCase().includes(searchLower) ||
-          shop.category.toLowerCase().includes(searchLower)
-        );
-      }
-
-      // Apply status filter
+      // Add filters
       if (appliedFilters.status.length > 0) {
-        filteredShops = filteredShops.filter(shop => 
-          appliedFilters.status.includes(shop.status || 'active')
-        );
+        appliedFilters.status.forEach(status => params.append('status', status));
       }
-
-      // Apply category filter
       if (appliedFilters.category.length > 0) {
-        filteredShops = filteredShops.filter(shop => 
-          appliedFilters.category.includes(shop.category)
-        );
+        appliedFilters.category.forEach(category => params.append('category', category));
       }
-
-      // Apply shopType filter
       if (appliedFilters.shopType.length > 0) {
-        filteredShops = filteredShops.filter(shop => 
-          appliedFilters.shopType.includes(shop.shopType || 'retail')
-        );
+        appliedFilters.shopType.forEach(shopType => params.append('shopType', shopType));
       }
 
-      // Sort shops: first by status (active first), then alphabetically by shop name
-      filteredShops.sort((a, b) => {
-        // First sort by status: active comes first
-        if (a.status === 'active' && b.status !== 'active') return -1;
-        if (a.status !== 'active' && b.status === 'active') return 1;
-        
-        // Then sort alphabetically by shop name
-        return a.shopName.localeCompare(b.shopName);
-      });
-
-      // Pagination
-      const startIndex = (page - 1) * limit;
-      const endIndex = startIndex + limit;
-      const paginatedShops = filteredShops.slice(startIndex, endIndex);
+      // Make API call
+      const response = await axios.get(`${API_BASE_URL}?${params.toString()}`);
       
-      setShops(paginatedShops);
-      setTotalRecords(filteredShops.length);
-      setTotalPages(Math.ceil(filteredShops.length / limit));
-      setError(null);
+      if (response.data.success) {
+        const shopsData = response.data.data;
+        setShops(shopsData);
+        setTotalRecords(response.data.count || shopsData.length);
+        setTotalPages(Math.ceil((response.data.count || shopsData.length) / limit));
+        setError(null);
+      } else {
+        setError('Failed to fetch shops');
+      }
     } catch (error) {
       console.error('Error fetching shops:', error);
       setError('Failed to fetch shops');
@@ -194,6 +152,16 @@ const ShopManagement: React.FC = () => {
       setLoading(false);
     }
   }, [currentPage, recordsPerPage, searchFilter, appliedFilters]);
+
+  // Auto-clear success message after 5 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   // Load shops on component mount
   useEffect(() => {
@@ -246,57 +214,95 @@ const ShopManagement: React.FC = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const handleAddShop = (shopData: any) => {
-    const shop: Shop = {
-      id: Date.now(),
-      shopName: shopData.shopName,
-      ownerName: shopData.ownerName,
-      email: shopData.ownerEmail,
-      phone: shopData.ownerPhone,
-      address: `${shopData.address.addressLine1}, ${shopData.address.district}, ${shopData.address.state} ${shopData.address.pincode}`,
-      category: shopData.category,
-      shopType: shopData.shopType, // Added shopType
-      status: shopData.status || 'active',
-      registrationDate: shopData.registrationDate || new Date().toISOString().split('T')[0],
-      lastActivity: new Date().toISOString().split('T')[0],
-      revenue: shopData.annualRevenue || Math.floor(Math.random() * 500000) + 50000,
-      
-    };
+  const handleAddShop = async (shopData: any) => {
+    try {
+      // Map the complex form data to the backend API structure
+      const newShopData = {
+        shopName: shopData.shopName,
+        ownerName: shopData.ownerName,
+        ownerEmail: shopData.ownerEmail,
+        ownerPhone: shopData.ownerPhone,
+        addressLine1: shopData.address.addressLine1,
+        addressLine2: shopData.address.addressLine2,
+        addressLine3: shopData.address.addressLine3,
+        state: shopData.address.state,
+        district: shopData.address.district,
+        pincode: shopData.address.pincode,
+        country: shopData.address.country,
+        category: shopData.category,
+        shopType: shopData.shopType,
+        status: shopData.status || 'pending'
+      };
 
-    setShops([...shops, shop]);
-    // Reset form
-    setShopFormData({
-      shopName: '',
-      ownerName: '',
-      category: 'retail',
-      address: {
-        addressLine1: '',
-        addressLine2: '',
-        addressLine3: '',
-        state: 'West Bengal',
-        district: 'Nadia',
-        pincode: '741501',
-        country: 'India'
-      },
-      email: '',
-      phone: ''
-    });
-    setShopFormErrors({});
-    setCurrentStep(1);
-    setShowAddForm(false);
-    setError(null);
+      // Send POST request to create new shop in the backend
+      const response = await axios.post(API_BASE_URL, newShopData);
+      
+      if (response.data.success) {
+        // Reset form
+        setShopFormData({
+          shopName: '',
+          ownerName: '',
+          category: 'retail',
+          address: {
+            addressLine1: '',
+            addressLine2: '',
+            addressLine3: '',
+            state: 'West Bengal',
+            district: 'Kolkata',
+            pincode: '',
+            country: 'India'
+          },
+          email: '',
+          phone: ''
+        });
+        setShopFormErrors({});
+        setCurrentStep(1);
+        setShowAddForm(false);
+        setError(null);
+        setSuccessMessage('Shop created successfully!');
+        
+        // Refresh the shops data to show the latest changes
+        await fetchShops();
+        
+        console.log('Shop created successfully');
+      } else {
+        throw new Error(response.data.error || 'Failed to create shop');
+      }
+    } catch (error) {
+      console.error('Error creating shop:', error);
+      alert('Failed to create shop. Please try again.');
+    }
   };
 
   const deleteShop = async (shopId: number) => {
-    if (window.confirm('Are you sure you want to delete this shop?')) {
+    const shop = shops.find(s => s.id === shopId);
+    if (shop) {
+      setShopToDelete(shop);
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (shopToDelete) {
       try {
-        const index = mockShops.findIndex(shop => shop.id === shopId);
-        if (index > -1) {
-          mockShops.splice(index, 1);
-          fetchShops();
+        // Send DELETE request to remove shop from the backend
+        const response = await axios.delete(`${API_BASE_URL}/${shopToDelete.id!}`);
+        
+        if (response.data.success) {
+          // Refresh the shops data to show the latest changes
+          await fetchShops();
+          setSuccessMessage('Shop deleted successfully!');
+          console.log('Shop deleted successfully');
+        } else {
+          throw new Error(response.data.error || 'Failed to delete shop');
         }
       } catch (error) {
         console.error('Error deleting shop:', error);
+        alert('Failed to delete shop. Please try again.');
+      } finally {
+        // Close the modal
+        setShowDeleteConfirm(false);
+        setShopToDelete(null);
       }
     }
   };
@@ -318,41 +324,106 @@ const ShopManagement: React.FC = () => {
   };
 
   // Suspend/Activate shop
-  const toggleShopStatus = (shopId: number) => {
-    const shop = mockShops.find(s => s.id === shopId);
-    if (shop) {
-      const newStatus = shop.status === 'active' ? 'suspended' : 'active';
-      const action = newStatus === 'suspended' ? 'suspend' : 'activate';
+  const toggleShopStatus = async (shopId: number) => {
+    const shopToUpdate = shops.find(s => s.id === shopId);
+    if (shopToUpdate) {
+      const statusOrder = ['active', 'pending', 'suspended', 'inactive'];
+      const currentIndex = statusOrder.indexOf(shopToUpdate.status);
+      const nextIndex = (currentIndex + 1) % statusOrder.length;
+      const newStatus = statusOrder[nextIndex] as 'active' | 'pending' | 'suspended' | 'inactive';
+      const action = newStatus === 'active' ? 'activate' : 
+                     newStatus === 'pending' ? 'set to pending' :
+                     newStatus === 'suspended' ? 'suspend' : 'deactivate';
       
-      if (window.confirm(`Are you sure you want to ${action} this shop?`)) {
-        shop.status = newStatus;
-        fetchShops();
+      setStatusChangeData({
+        shop: shopToUpdate,
+        newStatus,
+        action
+      });
+      setShowStatusConfirm(true);
+    }
+  };
+
+  const confirmStatusChange = async () => {
+    if (statusChangeData) {
+      try {
+        // Send PUT request to update shop status in the backend
+        const response = await axios.put(`${API_BASE_URL}/${statusChangeData.shop.id}`, { 
+          status: statusChangeData.newStatus 
+        });
+        
+        if (response.data.success) {
+          // Refresh the shops data to show the latest changes
+          await fetchShops();
+          setSuccessMessage(`Shop ${statusChangeData.action}ed successfully!`);
+          console.log(`Shop ${statusChangeData.action}ed successfully`);
+        } else {
+          throw new Error(response.data.error || `Failed to ${statusChangeData.action} shop`);
+        }
+      } catch (error) {
+        console.error(`Error ${statusChangeData.action}ing shop:`, error);
+        alert(`Failed to ${statusChangeData.action} shop. Please try again.`);
+      } finally {
+        // Close the modal
+        setShowStatusConfirm(false);
+        setStatusChangeData(null);
       }
     }
   };
 
   // Handle edit shop submission
-  const handleEditShop = (shopData: any) => {
+  const handleEditShop = async (shopData: any) => {
     if (selectedShop) {
-      const index = mockShops.findIndex(shop => shop.id === selectedShop.id);
-      if (index > -1) {
-        mockShops[index] = {
-          ...mockShops[index],
+      try {
+        // Debug: Log the received form data
+        console.log('Received form data:', shopData);
+        console.log('Selected shop before update:', selectedShop);
+        
+        // Map the complex form data to the backend API structure
+        const shopUpdateData = {
           shopName: shopData.shopName,
           ownerName: shopData.ownerName,
           category: shopData.category,
-          status: shopData.status || mockShops[index].status,
-          email: shopData.ownerEmail,
-          phone: shopData.ownerPhone,
-          address: `${shopData.address.addressLine1}, ${shopData.address.district}, ${shopData.address.state} ${shopData.address.pincode}`
+          status: shopData.status || selectedShop.status,
+          ownerEmail: shopData.ownerEmail,
+          ownerPhone: shopData.ownerPhone,
+          addressLine1: shopData.address.addressLine1,
+          addressLine2: shopData.address.addressLine2,
+          addressLine3: shopData.address.addressLine3,
+          state: shopData.address.state,
+          district: shopData.address.district,
+          pincode: shopData.address.pincode,
+          country: shopData.address.country
         };
-        fetchShops();
-        setShowEditShop(false);
+
+        // Debug: Log the mapped data being sent to API
+        console.log('Data being sent to API:', shopUpdateData);
+
+        // Send PUT request to update shop in the backend
+        const response = await axios.put(`${API_BASE_URL}/${selectedShop.id}`, shopUpdateData);
         
-        // Update selectedShop with new data and show view modal
-        const updatedShop = mockShops[index];
-        setSelectedShop(updatedShop);
-        setShowViewShop(true);
+        if (response.data.success) {
+          // Close edit modal
+          setShowEditShop(false);
+          
+          // Refresh the shops data to show the latest changes
+          await fetchShops();
+          
+          // Update selectedShop with the response data and show view modal
+          const updatedShop = response.data.data;
+          setSelectedShop(updatedShop);
+          setShowViewShop(true);
+          setSuccessMessage('Shop updated successfully!');
+          
+          // Show success message (optional)
+          console.log('Shop updated successfully');
+        } else {
+          throw new Error(response.data.error || 'Failed to update shop');
+        }
+      } catch (error) {
+        console.error('Error updating shop:', error);
+        // You could add error handling here, like showing an error message to the user
+        alert('Failed to update shop. Please try again.');
       }
     }
   };
@@ -361,9 +432,14 @@ const ShopManagement: React.FC = () => {
   const closeAllShopModals = () => {
     setShowViewShop(false);
     setShowEditShop(false);
+    setShowDeleteConfirm(false);
+    setShowStatusConfirm(false);
     setSelectedShop(null);
+    setShopToDelete(null);
+    setStatusChangeData(null);
     setCurrentStep(1);
     setShopFormErrors({});
+    setSuccessMessage(null); // Clear success message when closing modals
   };
 
   // Filter functions
@@ -530,7 +606,7 @@ const ShopManagement: React.FC = () => {
             <div className="filter-group">
               <label className="filter-label">📊 Status</label>
               <div className="filter-options">
-                {['active', 'suspended'].map(status => (
+                {['active', 'pending', 'suspended', 'inactive'].map(status => (
                   <label key={status} className="checkbox-label">
                     <input
                       type="checkbox"
@@ -543,7 +619,10 @@ const ShopManagement: React.FC = () => {
                       }}
                     />
                     <span className="checkbox-text">
-                      {status === 'active' ? '🟢 Active' : '🟠 Suspended'}
+                      {status === 'active' ? '🟢 Active' : 
+                       status === 'pending' ? '🟡 Pending' :
+                       status === 'suspended' ? '🟠 Suspended' :
+                       '⚫ Inactive'}
                     </span>
                   </label>
                 ))}
@@ -629,6 +708,7 @@ const ShopManagement: React.FC = () => {
             setShowAddForm(false);
             setCurrentStep(1);
             setShopFormErrors({});
+            setSuccessMessage(null); // Clear success message on close
           }}
           onSubmit={handleAddShop}
           mode="add"
@@ -643,27 +723,200 @@ const ShopManagement: React.FC = () => {
             setShowEditShop(false);
             // Return to view mode instead of clearing selectedShop
             setShowViewShop(true);
+            setSuccessMessage(null); // Clear success message on close
           }}
           onSubmit={handleEditShop}
           mode="edit"
           initialData={{
             shopName: selectedShop.shopName,
-            ownerName: selectedShop.ownerName,
+            shopType: (selectedShop.shopType || 'retail') as 'retail' | 'wholesale' | 'ecommerce' | 'service' | 'restaurant' | 'other',
             category: selectedShop.category,
-            status: selectedShop.status as any,
-            ownerEmail: selectedShop.email,
-            ownerPhone: selectedShop.phone || '',
+            description: '',
+            ownerName: selectedShop.ownerName,
+            ownerEmail: selectedShop.ownerEmail,
+            ownerPhone: selectedShop.ownerPhone || '',
             address: {
-              addressLine1: selectedShop.address?.split(',')[0] || '',
-              addressLine2: '',
-              addressLine3: '',
-              state: selectedShop.address?.split(',')[1]?.trim() || 'West Bengal',
-              district: selectedShop.address?.split(',')[1]?.trim() || 'Nadia',
-              pincode: selectedShop.address?.split(',')[2]?.trim() || '741501',
-              country: 'India'
-            }
+              addressLine1: selectedShop.addressLine1 || '',
+              addressLine2: selectedShop.addressLine2 || '',
+              addressLine3: selectedShop.addressLine3 || '',
+              state: selectedShop.state || 'West Bengal',
+              district: selectedShop.district || 'Kolkata',
+              pincode: selectedShop.pincode || '',
+              country: selectedShop.country || 'India'
+            },
+            gstNumber: {
+              number: '',
+              verificationStatus: 'pending'
+            },
+            panNumber: {
+              number: '',
+              verificationStatus: 'pending'
+            },
+            businessLicenseNumber: '',
+            registrationDate: new Date().toISOString().split('T')[0],
+            shopPhoneNumbers: [{
+              id: 'phone-1',
+              countryCode: '+91',
+              number: selectedShop.ownerPhone || '',
+              type: 'primary',
+              isVerified: false
+            }],
+            shopEmail: selectedShop.ownerEmail || '',
+            website: '',
+            annualRevenue: 0,
+            employeeCount: 1,
+            documents: [],
+            status: selectedShop.status as any
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && shopToDelete && (
+        <div className="shop-form-overlay">
+          <div className="shop-form-modal" style={{ maxWidth: '400px' }}>
+            <div className="shop-form-header">
+              <h2>Delete Shop</h2>
+              <button className="close-button" onClick={() => {
+                setShowDeleteConfirm(false);
+                setShopToDelete(null);
+              }}>×</button>
+            </div>
+            
+            <div className="shop-form" style={{ padding: '32px', textAlign: 'center' }}>
+              <div className="delete-warning" style={{ marginBottom: '24px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+                <h3 style={{ marginBottom: '12px', color: '#d32f2f' }}>Are you sure?</h3>
+                <p style={{ color: '#666', lineHeight: '1.5' }}>
+                  You are about to delete <strong>{shopToDelete.shopName}</strong>. 
+                  This action cannot be undone.
+                </p>
+              </div>
+              
+              <div className="delete-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button 
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setShopToDelete(null);
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#666',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="delete-btn"
+                  onClick={confirmDelete}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: '#d32f2f',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Delete Shop
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Confirmation Modal */}
+      {showStatusConfirm && statusChangeData && (
+        <div className="shop-form-overlay">
+          <div className="shop-form-modal" style={{ maxWidth: '400px' }}>
+            <div className="shop-form-header">
+              <h2>Change Shop Status</h2>
+              <button className="close-button" onClick={() => {
+                setShowStatusConfirm(false);
+                setStatusChangeData(null);
+              }}>×</button>
+            </div>
+            
+            <div className="shop-form" style={{ padding: '32px', textAlign: 'center' }}>
+              <div className="status-change-info" style={{ marginBottom: '24px' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔄</div>
+                <h3 style={{ marginBottom: '12px', color: '#1976d2' }}>Update Shop Status</h3>
+                <p style={{ color: '#666', lineHeight: '1.5', marginBottom: '16px' }}>
+                  You are about to change the status of <strong>{statusChangeData.shop.shopName}</strong>.
+                </p>
+                <div style={{ 
+                  padding: '16px', 
+                  backgroundColor: '#f5f5f5', 
+                  borderRadius: '8px',
+                  border: '1px solid #e0e0e0'
+                }}>
+                  <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#666' }}>
+                    Current Status:
+                  </p>
+                  <span className={`status-badge ${statusChangeData.shop.status}`}>
+                    {statusChangeData.shop.status === 'active' ? '🟢 Active' : 
+                     statusChangeData.shop.status === 'pending' ? '🟡 Pending' :
+                     statusChangeData.shop.status === 'suspended' ? '🟠 Suspended' :
+                     '⚫ Inactive'}
+                  </span>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#666' }}>
+                    New Status:
+                  </p>
+                  <span className={`status-badge ${statusChangeData.newStatus}`}>
+                    {statusChangeData.newStatus === 'active' ? '🟢 Active' : 
+                     statusChangeData.newStatus === 'pending' ? '🟡 Pending' :
+                     statusChangeData.newStatus === 'suspended' ? '🟠 Suspended' :
+                     '⚫ Inactive'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="status-change-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                <button 
+                  className="cancel-btn"
+                  onClick={() => {
+                    setShowStatusConfirm(false);
+                    setStatusChangeData(null);
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    border: '1px solid #ddd',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#666',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="confirm-btn"
+                  onClick={confirmStatusChange}
+                  style={{
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: '#1976d2',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Confirm Change
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* View Shop Modal */}
@@ -690,7 +943,10 @@ const ShopManagement: React.FC = () => {
                   <span className="detail-label">Status:</span>
                   <span className="detail-value">
                     <span className={`status-badge ${selectedShop.status || 'active'}`}>
-                      {selectedShop.status === 'active' ? '🟢 Active' : '🟠 Suspended'}
+                      {selectedShop.status === 'active' ? '🟢 Active' : 
+                       selectedShop.status === 'pending' ? '🟡 Pending' :
+                       selectedShop.status === 'suspended' ? '🟠 Suspended' :
+                       '⚫ Inactive'}
                     </span>
                   </span>
                 </div>
@@ -702,16 +958,16 @@ const ShopManagement: React.FC = () => {
                   <span className="detail-label">Owner Name:</span>
                   <span className="detail-value">{selectedShop.ownerName}</span>
                 </div>
-                {selectedShop.email && (
+                {selectedShop.ownerEmail && (
                   <div className="detail-row">
                     <span className="detail-label">Email:</span>
-                    <span className="detail-value">{selectedShop.email}</span>
+                    <span className="detail-value">{selectedShop.ownerEmail}</span>
                   </div>
                 )}
-                {selectedShop.phone && (
+                {selectedShop.ownerPhone && (
                   <div className="detail-row">
                     <span className="detail-label">Phone:</span>
-                    <span className="detail-value">{selectedShop.phone}</span>
+                    <span className="detail-value">{selectedShop.ownerPhone}</span>
                   </div>
                 )}
               </div>
@@ -720,7 +976,7 @@ const ShopManagement: React.FC = () => {
                 <h4>Address</h4>
                 <div className="detail-row">
                   <span className="detail-label">Address:</span>
-                  <span className="detail-value">{selectedShop.address}</span>
+                  <span className="detail-value">{selectedShop.addressLine1}, {selectedShop.district}, {selectedShop.state} {selectedShop.pincode}</span>
                 </div>
               </div>
 
@@ -773,7 +1029,7 @@ const ShopManagement: React.FC = () => {
                   </div>
                   <div className="detail-row">
                     <span className="detail-label">Address:</span>
-                    <span className="detail-value">{shop.address}</span>
+                    <span className="detail-value">{shop.addressLine1}, {shop.district}, {shop.state} {shop.pincode}</span>
                   </div>
 
                 </div>
@@ -794,11 +1050,13 @@ const ShopManagement: React.FC = () => {
                   ✏️
                 </button>
                 <button 
-                  className="action-btn suspend-btn"
-                  title={shop.status === 'active' ? 'Suspend shop' : 'Activate shop'}
-                  onClick={() => toggleShopStatus(shop.id)}
+                  className="action-button toggle-status"
+                  onClick={() => toggleShopStatus(shop.id!)}
+                  title={`Cycle status (${shop.status || 'active'} -> next status)`}
                 >
-                  {shop.status === 'active' ? '⏸️' : '▶️'}
+                  {shop.status === 'active' ? '⏸️' : 
+                   shop.status === 'pending' ? '⏳' :
+                   shop.status === 'suspended' ? '▶️' : '🔄'}
                 </button>
                 <button 
                   className="action-btn delete-btn"
@@ -849,7 +1107,7 @@ const ShopManagement: React.FC = () => {
                   </td>
                   <td className="address-cell">
                     <div className="cell-content">
-                      {shop.address}
+                      {shop.addressLine1}, {shop.district}, {shop.state} {shop.pincode}
                     </div>
                   </td>
                   <td className="status-cell">
@@ -874,11 +1132,13 @@ const ShopManagement: React.FC = () => {
                         ✏️
                       </button>
                       <button 
-                        className="table-action-btn suspend-btn"
-                        title={shop.status === 'active' ? 'Suspend shop' : 'Activate shop'}
-                        onClick={() => toggleShopStatus(shop.id)}
+                        className="table-action-btn toggle-status"
+                        title={`Cycle status (${shop.status || 'active'} -> next status)`}
+                        onClick={() => toggleShopStatus(shop.id!)}
                       >
-                        {shop.status === 'active' ? '⏸️' : '▶️'}
+                        {shop.status === 'active' ? '⏸️' : 
+                         shop.status === 'pending' ? '⏳' :
+                         shop.status === 'suspended' ? '▶️' : '🔄'}
                       </button>
                       <button 
                         className="table-action-btn delete-btn"
@@ -937,6 +1197,48 @@ const ShopManagement: React.FC = () => {
             onClick={() => setShowAddForm(true)}
           >
             Add First Shop
+          </button>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {successMessage && (
+        <div className="success-message" style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          backgroundColor: '#d4edda',
+          color: '#155724',
+          padding: '15px 20px',
+          borderRadius: '5px',
+          border: '1px solid #c3e6cb',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          maxWidth: '400px'
+        }}>
+          <span className="success-icon" style={{ fontSize: '20px' }}>✅</span>
+          <p style={{ margin: 0, flex: 1 }}>{successMessage}</p>
+          <button 
+            onClick={() => setSuccessMessage(null)} 
+            className="close-success-btn"
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '18px',
+              cursor: 'pointer',
+              color: '#155724',
+              padding: '0',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            ✕
           </button>
         </div>
       )}

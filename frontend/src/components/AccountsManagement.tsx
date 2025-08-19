@@ -52,215 +52,99 @@ const AccountsManagement: React.FC = () => {
     tenureRange: ''
   });
 
-  // Mock data for accounts
-  const mockAccounts = useMemo((): Account[] => [
-    {
-      id: 1,
-      accountNumber: '1234567890',
-      accountOwnershipType: 'joint',
-      accountHolderNames: ['Rajesh Kumar', 'Priya Kumar'],
-      institutionType: 'post_office',
-      accountType: 'national_savings_certificate',
-      institutionName: 'Aranghata Post Office',
-      branchCode: '102024',
-      tenure: 60,
-      status: 'active',
-      openingDate: '2020-03-15',
-      lastTransactionDate: '2024-01-20',
-      address: '123 Main Street, Kolkata, West Bengal 700001',
-      nomineeName: 'Priya Kumar',
-      nomineeRelation: 'Spouse',
-      kycStatus: 'verified'
-    },
-    {
-      id: 2,
-      accountNumber: '0987654321',
-      accountOwnershipType: 'joint',
-      accountHolderNames: ['Priya Sharma', 'Amit Sharma'],
-      institutionType: 'post_office',
-      accountType: 'monthly_income_scheme',
-      institutionName: 'Central Post Office',
-      branchCode: '999999',
-      tenure: 60,
-      status: 'active',
-      openingDate: '2019-07-22',
-      lastTransactionDate: '2024-01-19',
-      address: '456 Park Avenue, Mumbai, Maharashtra 400001',
-      nomineeName: 'Amit Sharma',
-      nomineeRelation: 'Father',
-      kycStatus: 'verified'
-    },
-    {
-      id: 3,
-      accountNumber: '1122334455',
-      accountOwnershipType: 'joint',
-      accountHolderNames: ['Amit Patel', 'Neha Patel'],
-      institutionType: 'post_office',
-      accountType: 'recurring_deposit',
-      institutionName: 'Aranghata Post Office',
-      branchCode: '102024',
-      tenure: 60,
-      status: 'fined',
-      openingDate: '2021-11-08',
-      lastTransactionDate: '2024-01-10',
-      address: '789 Business Park, Delhi, Delhi 110001',
-      nomineeName: 'Neha Patel',
-      nomineeRelation: 'Wife',
+  // Map backend account to UI account shape
+  const mapBackendAccountToUI = (a: any): Account => {
+    console.log('mapBackendAccountToUI', a);
+    return {
+      id: a.id,
+      accountNumber: a.accountNumber,
+      accountOwnershipType: a.accountOwnershipType,
+      accountHolderNames: Array.isArray(a.accountHolderNames) ? a.accountHolderNames : 
+        (typeof a.accountHolderNames === 'string' ? a.accountHolderNames.split(',').map((name: string) => name.trim()) : []),
+      institutionType: a.institutionType,
+      accountType: a.accountType as Account['accountType'],
+      institutionName: a.institutionName,
+      branchCode: a.branchCode || '',
+      ifscCode: a.ifscCode || undefined,
+      tenure: a.tenure ?? 0,
+      status: a.status,
+      openingDate: a.startDate || a.createdAt || '',
+      lastTransactionDate: a.lastPaymentDate || a.updatedAt || '',
+      address: '',
+      nomineeName: a.nomineeName || undefined,
+      nomineeRelation: a.nomineeRelation || undefined,
       kycStatus: 'pending'
-    },
-    {
-      id: 4,
-      accountNumber: '5566778899',
-      accountOwnershipType: 'joint',
-      accountHolderNames: ['Neha Singh', 'Rahul Singh'],
-      institutionType: 'post_office',
-      accountType: '2td',
-      institutionName: 'Central Post Office',
-      branchCode: '999999',
-      tenure: 24,
-      status: 'active',
-      openingDate: '2022-05-12',
-      lastTransactionDate: '2024-01-15',
-      address: '321 Garden Road, Bangalore, Karnataka 560001',
-      nomineeName: 'Rahul Singh',
-      nomineeRelation: 'Brother',
-      kycStatus: 'verified'
-    },
-    {
-      id: 5,
-      accountNumber: '9988776655',
-      accountOwnershipType: 'joint',
-      accountHolderNames: ['Rahul Verma', 'Sunita Verma'],
-      institutionType: 'post_office',
-      accountType: 'recurring_deposit',
-      institutionName: 'Aranghata Post Office',
-      branchCode: '102024',
-      tenure: 60,
-      status: 'matured',
-      openingDate: '2023-01-30',
-      lastTransactionDate: '2024-01-18',
-
-      address: '654 Lake View, Hyderabad, Telangana 500001',
-      nomineeName: 'Sunita Verma',
-      nomineeRelation: 'Mother',
-      kycStatus: 'verified'
-    },
-    {
-      id: 6,
-      accountNumber: '1122334455',
-      accountOwnershipType: 'single',
-      accountHolderNames: ['Sunita Verma'],
-      institutionType: 'post_office',
-      accountType: '1td',
-      institutionName: 'Central Post Office',
-      branchCode: '999999',
-      tenure: 12,
-      status: 'active',
-      openingDate: '2022-08-15',
-      lastTransactionDate: '2024-01-22',
-
-      address: '987 Hill Road, Pune, Maharashtra 411001',
-      nomineeName: 'Rahul Verma',
-      nomineeRelation: 'Son',
-      kycStatus: 'verified'
-    },
-    {
-      id: 7,
-      accountNumber: '9988776655',
-      accountOwnershipType: 'joint',
-      accountHolderNames: ['Vikram Singh', 'Anjali Singh'],
-      institutionType: 'post_office',
-      accountType: 'kishan_vikash_patra',
-      institutionName: 'Aranghata Post Office',
-      branchCode: '102024',
-      tenure: 120,
-      status: 'active',
-      openingDate: '2023-06-10',
-      lastTransactionDate: '2024-01-21',
-
-      address: '456 Farm Road, Lucknow, Uttar Pradesh 226001',
-      nomineeName: 'Anjali Singh',
-      nomineeRelation: 'Wife',
-      kycStatus: 'verified'
-    },
-    {
-      id: 8,
-      accountNumber: '5544332211',
-      accountOwnershipType: 'single',
-      accountHolderNames: ['Meera Patel'],
-      institutionType: 'post_office',
-      accountType: '3td',
-      institutionName: 'Aranghata Post Office',
-      branchCode: '102024',
-      tenure: 36,
-      status: 'active',
-      openingDate: '2021-12-05',
-      lastTransactionDate: '2024-01-19',
-
-      address: '789 Business Street, Ahmedabad, Gujarat 380001',
-      nomineeName: 'Raj Patel',
-      nomineeRelation: 'Brother',
-      kycStatus: 'pending'
-    }
-  ], []);
+    };
+  };
 
   // Fetch accounts with filtering and sorting
-  const fetchAccounts = useCallback(() => {
+  const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
-      let filteredAccounts = [...mockAccounts];
-
-      // Apply search filter
+      // Build query parameters for filtering
+      const params = new URLSearchParams();
       if (searchFilter.trim()) {
-        filteredAccounts = filteredAccounts.filter(account =>
-          account.accountNumber.toLowerCase().includes(searchFilter.toLowerCase()) ||
-          account.accountHolderNames.some(name => name.toLowerCase().includes(searchFilter.toLowerCase())) ||
-          account.institutionName.toLowerCase().includes(searchFilter.toLowerCase())
+        params.append('search', searchFilter.trim());
+      }
+      if (filters.institutionType) {
+        params.append('institutionType', filters.institutionType);
+      }
+      if (filters.accountType) {
+        params.append('accountType', filters.accountType);
+      }
+      if (filters.status) {
+        params.append('status', filters.status);
+      }
+      if (filters.tenureRange) {
+        params.append('tenureRange', filters.tenureRange);
+      }
+
+      // Fetch accounts from backend API
+      const response = await fetch(`/api/accounts?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch accounts');
+      }
+
+      // Map backend data to UI format
+      const mappedAccounts = data.data.map(mapBackendAccountToUI);
+      console.log('mappedAccounts', mappedAccounts);
+      // Apply local filters that aren't supported by backend
+      let filteredAccounts = mappedAccounts;
+      if (filters.institutionName) {
+        filteredAccounts = filteredAccounts.filter((account: Account) => 
+          account.institutionName.toLowerCase().includes(filters.institutionName.toLowerCase())
+        );
+      }
+      if (filters.kycStatus) {
+        filteredAccounts = filteredAccounts.filter((account: Account) => 
+          account.kycStatus === filters.kycStatus
         );
       }
 
-      // Apply advanced filters
-      if (filters.institutionType) {
-        filteredAccounts = filteredAccounts.filter(account => account.institutionType === filters.institutionType);
-      }
-      if (filters.accountType) {
-        filteredAccounts = filteredAccounts.filter(account => account.accountType === filters.accountType);
-      }
-      if (filters.status) {
-        filteredAccounts = filteredAccounts.filter(account => account.status === filters.status);
-      }
-      if (filters.institutionName) {
-        filteredAccounts = filteredAccounts.filter(account => account.institutionName.toLowerCase().includes(filters.institutionName.toLowerCase()));
-      }
-      if (filters.kycStatus) {
-        filteredAccounts = filteredAccounts.filter(account => account.kycStatus === filters.kycStatus);
-      }
-      if (filters.tenureRange) {
-        const [min, max] = filters.tenureRange.split('-').map(Number);
-        if (max) {
-          filteredAccounts = filteredAccounts.filter(account => account.tenure >= min && account.tenure <= max);
-        } else {
-          filteredAccounts = filteredAccounts.filter(account => account.tenure >= min);
-        }
-      }
-
       // Sort accounts: first by status (active first), then alphabetically by first account holder name
-      filteredAccounts.sort((a, b) => {
+      filteredAccounts.sort((a: Account, b: Account) => {
         // First sort by status: active comes first
         if (a.status === 'active' && b.status !== 'active') return -1;
         if (a.status !== 'active' && b.status === 'active') return 1;
 
         // Then sort alphabetically by first account holder name
-        return a.accountHolderNames[0].localeCompare(b.accountHolderNames[0]);
+        return (a.accountHolderNames[0] || '').localeCompare(b.accountHolderNames[0] || '');
       });
 
       setAccounts(filteredAccounts);
     } catch (error) {
       console.error('Error fetching accounts:', error);
+      // Set empty array on error
+      setAccounts([]);
     } finally {
       setLoading(false);
     }
-  }, [searchFilter, filters, mockAccounts]);
+  }, [searchFilter, filters]);
 
   // Load accounts on component mount and when filters change
   useEffect(() => {
@@ -273,41 +157,75 @@ const AccountsManagement: React.FC = () => {
     fetchAccounts();
   };
 
-  // Handle add account
-  const handleAddAccount = (accountData: any) => {
-    const account: Account = {
-      id: Date.now(),
-      accountNumber: accountData.accountNumber,
-      accountOwnershipType: accountData.accountOwnershipType,
-      accountHolderNames: accountData.accountHolderNames,
-      institutionType: accountData.institutionType,
-      accountType: accountData.accountType,
-      institutionName: accountData.institutionName,
-      branchCode: accountData.branchCode,
-      ifscCode: accountData.ifscCode,
-      tenure: accountData.tenure || 12,
-      status: accountData.status || 'active',
-      openingDate: accountData.openingDate || new Date().toISOString().split('T')[0],
-      lastTransactionDate: new Date().toISOString().split('T')[0],
-      address: `${accountData.address.addressLine1}, ${accountData.address.district}, ${accountData.address.state} ${accountData.address.pincode}`,
-      nomineeName: accountData.nomineeName,
-      nomineeRelation: accountData.nomineeRelation,
-      kycStatus: 'pending'
-    };
-    setAccounts([...accounts, account]);
+  // Handle add account (create in backend then refresh)
+  const handleAddAccount = async (accountData: any) => {
+    try {
+      const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountNumber: accountData.accountNumber,
+          accountOwnershipType: accountData.accountOwnershipType,
+          accountHolderNames: accountData.accountHolderNames,
+          institutionType: accountData.institutionType,
+          accountType: accountData.accountType,
+          institutionName: accountData.institutionName,
+          branchCode: accountData.branchCode || null,
+          ifscCode: accountData.ifscCode || null,
+          tenure: accountData.tenure || 12,
+          status: accountData.status || 'active',
+          startDate: accountData.startDate || null,
+          maturityDate: null,
+          paymentType: 'monthly',
+          amount: 0,
+          lastPaymentDate: null,
+          nomineeName: accountData.nomineeName || null,
+          nomineeRelation: accountData.nomineeRelation || null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add account');
+      }
+
+      // Refresh the accounts list
+      fetchAccounts();
+      setShowAddForm(false);
+      console.log('Account added successfully');
+    } catch (error) {
+      console.error('Error adding account:', error);
+      alert('Failed to add account. Please try again.');
+    }
   };
 
-  // Delete account
+  // Handle delete account
   const deleteAccount = async (accountId: number) => {
     if (window.confirm('Are you sure you want to delete this account?')) {
       try {
-        const index = mockAccounts.findIndex(account => account.id === accountId);
-        if (index > -1) {
-          mockAccounts.splice(index, 1);
-          fetchAccounts();
+        const response = await fetch(`/api/accounts/${accountId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to delete account');
+        }
+
+        // Refresh the accounts list
+        fetchAccounts();
+        console.log(`Account with ID ${accountId} deleted successfully.`);
       } catch (error) {
         console.error('Error deleting account:', error);
+        alert('Failed to delete account. Please try again.');
       }
     }
   };
@@ -329,47 +247,90 @@ const AccountsManagement: React.FC = () => {
   };
 
   // Suspend/Activate account
-  const toggleAccountStatus = (accountId: number) => {
-    const account = mockAccounts.find(a => a.id === accountId);
+  const toggleAccountStatus = async (accountId: number) => {
+    const account = accounts.find(a => a.id === accountId);
     if (account) {
       const newStatus = account.status === 'active' ? 'suspended' : 'active';
-      const action = newStatus === 'suspended' ? 'suspend' : 'activate';
+      const action = newStatus === 'active' ? 'activate' : 'suspend';
       
       if (window.confirm(`Are you sure you want to ${action} this account?`)) {
-        account.status = newStatus;
-        fetchAccounts();
+        try {
+          const response = await fetch(`/api/accounts/${accountId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          if (!result.success) {
+            throw new Error(result.error || 'Failed to update account status');
+          }
+
+          // Refresh the accounts list
+          fetchAccounts();
+          console.log(`Account with ID ${accountId} status changed to ${newStatus}`);
+        } catch (error) {
+          console.error('Error updating account status:', error);
+          alert('Failed to update account status. Please try again.');
+        }
       }
     }
   };
 
-  // Handle edit account submission
-  const handleEditAccount = (accountData: any) => {
+  // Handle edit account
+  const handleEditAccount = async (accountData: any) => {
     if (selectedAccount) {
-      const index = mockAccounts.findIndex(account => account.id === selectedAccount.id);
-      if (index > -1) {
-        mockAccounts[index] = {
-          ...mockAccounts[index],
-          accountNumber: accountData.accountNumber,
-          accountOwnershipType: accountData.accountOwnershipType,
-          accountHolderNames: accountData.accountHolderNames,
-          institutionType: accountData.institutionType,
-          accountType: accountData.accountType,
-          institutionName: accountData.institutionName,
-          branchCode: accountData.branchCode,
-          ifscCode: accountData.ifscCode,
-          tenure: accountData.tenure || 12,
-          status: accountData.status || mockAccounts[index].status,
-          address: `${accountData.address.addressLine1}, ${accountData.address.district}, ${accountData.address.state} ${accountData.address.pincode}`,
-          nomineeName: accountData.nomineeName,
-          nomineeRelation: accountData.nomineeRelation
-        };
+      try {
+        const response = await fetch(`/api/accounts/${selectedAccount.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accountNumber: accountData.accountNumber,
+            accountOwnershipType: accountData.accountOwnershipType,
+            accountHolderNames: accountData.accountHolderNames,
+            institutionType: accountData.institutionType,
+            accountType: accountData.accountType,
+            institutionName: accountData.institutionName,
+            branchCode: accountData.branchCode,
+            ifscCode: accountData.ifscCode,
+            tenure: accountData.tenure || 12,
+            status: accountData.status || selectedAccount.status,
+            startDate: accountData.startDate,
+            maturityDate: accountData.maturityDate,
+            paymentType: accountData.paymentType,
+            amount: accountData.amount,
+            lastPaymentDate: accountData.lastPaymentDate,
+            nomineeName: accountData.nomineeName,
+            nomineeRelation: accountData.nomineeRelation
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to update account');
+        }
+
+        // Refresh the accounts list
         fetchAccounts();
         setShowEditAccount(false);
         
         // Update selectedAccount with new data and show view modal
-        const updatedAccount = mockAccounts[index];
+        const updatedAccount = result.data;
         setSelectedAccount(updatedAccount);
         setShowViewAccount(true);
+        
+        console.log('Account updated successfully');
+      } catch (error) {
+        console.error('Error updating account:', error);
+        alert('Failed to update account. Please try again.');
       }
     }
   };
@@ -766,41 +727,57 @@ const AccountsManagement: React.FC = () => {
       )}
 
       {/* Edit Account Form */}
-      {showEditAccount && selectedAccount && (
-        <AccountForm
-          isOpen={showEditAccount}
-          onClose={() => {
-            setShowEditAccount(false);
-            // Return to view mode instead of clearing selectedAccount
-            setShowViewAccount(true);
-          }}
-          onSubmit={handleEditAccount}
-          mode="edit"
-          initialData={{
-            accountNumber: selectedAccount.accountNumber,
-            accountOwnershipType: selectedAccount.accountOwnershipType,
-            accountHolderNames: selectedAccount.accountHolderNames,
-            institutionType: selectedAccount.institutionType,
-            accountType: selectedAccount.accountType,
-            institutionName: selectedAccount.institutionName,
-            branchCode: selectedAccount.branchCode,
-            ifscCode: selectedAccount.ifscCode,
-            tenure: selectedAccount.tenure,
-            status: selectedAccount.status as any,
-            address: {
-              addressLine1: selectedAccount.address?.split(',')[0] || '',
-              addressLine2: '',
-              addressLine3: '',
-              state: selectedAccount.address?.split(',')[1]?.trim() || 'West Bengal',
-              district: selectedAccount.address?.split(',')[1]?.trim() || 'Nadia',
-              pincode: selectedAccount.address?.split(',')[2]?.trim() || '741501',
-              country: 'India'
-            },
-            nomineeName: selectedAccount.nomineeName || '',
-            nomineeRelation: selectedAccount.nomineeRelation || ''
-          }}
-        />
-      )}
+      {showEditAccount && selectedAccount && (() => {
+        console.log('Opening Edit Account Form with selectedAccount:', selectedAccount);
+        
+        const initialData = {
+          accountNumber: selectedAccount.accountNumber,
+          accountOwnershipType: selectedAccount.accountOwnershipType,
+          accountHolderNames: selectedAccount.accountHolderNames,
+          institutionType: selectedAccount.institutionType,
+          accountType: selectedAccount.accountType,
+          institutionName: selectedAccount.institutionName,
+          branchCode: selectedAccount.branchCode,
+          ifscCode: selectedAccount.ifscCode,
+          tenure: selectedAccount.tenure,
+          status: selectedAccount.status,
+          startDate: selectedAccount.openingDate || new Date().toISOString().split('T')[0],
+          maturityDate: selectedAccount.openingDate ? 
+            new Date(new Date(selectedAccount.openingDate).getTime() + (selectedAccount.tenure * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0] : 
+            new Date().toISOString().split('T')[0],
+          paymentType: 'monthly' as const,
+          amount: 0,
+          lastPaymentDate: selectedAccount.lastTransactionDate || new Date().toISOString().split('T')[0],
+          address: {
+            addressLine1: selectedAccount.address?.split(',')[0] || '',
+            addressLine2: '',
+            addressLine3: '',
+            state: selectedAccount.address?.split(',')[1]?.trim() || 'West Bengal',
+            district: selectedAccount.address?.split(',')[1]?.trim() || 'Nadia',
+            pincode: selectedAccount.address?.split(',')[2]?.trim() || '741501',
+            country: 'India'
+          },
+          nomineeName: selectedAccount.nomineeName || '',
+          nomineeRelation: selectedAccount.nomineeRelation || ''
+        };
+        
+        console.log('Initial data being passed to AccountForm:', initialData);
+        console.log('Account holder names:', initialData.accountHolderNames);
+        
+        return (
+          <AccountForm
+            isOpen={showEditAccount}
+            onClose={() => {
+              setShowEditAccount(false);
+              // Return to view mode instead of clearing selectedAccount
+              setShowViewAccount(true);
+            }}
+            onSubmit={handleEditAccount}
+            mode="edit"
+            initialData={initialData}
+          />
+        );
+      })()}
 
       {/* View Account Modal */}
       {showViewAccount && selectedAccount && (

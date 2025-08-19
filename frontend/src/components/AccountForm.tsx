@@ -135,10 +135,18 @@ const AccountForm: React.FC<AccountFormProps> = ({
   // Initialize form data when component mounts or initialData changes
   useEffect(() => {
     if (initialData) {
-      setFormData(prev => ({
-        ...prev,
-        ...initialData
-      }));
+      console.log('AccountForm: Received initialData:', initialData);
+      console.log('AccountForm: Current formData before update:', formData);
+      
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          ...initialData
+        };
+        console.log('AccountForm: New formData after update:', newData);
+        console.log('AccountForm: Account holder names after update:', newData.accountHolderNames);
+        return newData;
+      });
     }
   }, [initialData]);
 
@@ -155,21 +163,25 @@ const AccountForm: React.FC<AccountFormProps> = ({
 
   // Reset account holder names when ownership type changes
   useEffect(() => {
-    if (formData.accountOwnershipType === 'single') {
-      setFormData(prev => ({
-        ...prev,
-        accountHolderNames: prev.accountHolderNames.length > 0 ? [prev.accountHolderNames[0]] : ['']
-      }));
-    } else {
-      // Joint account - ensure at least 2 holders
-      if (formData.accountHolderNames.length < 2) {
+    // Only reset names if we're in add mode or if the form was just initialized
+    // In edit mode, we want to preserve the existing names
+    if (mode === 'add' || !initialData?.accountHolderNames?.length) {
+      if (formData.accountOwnershipType === 'single') {
         setFormData(prev => ({
           ...prev,
-          accountHolderNames: prev.accountHolderNames.length > 0 ? [...prev.accountHolderNames, ''] : ['']
+          accountHolderNames: prev.accountHolderNames.length > 0 ? [prev.accountHolderNames[0]] : ['']
         }));
+      } else {
+        // Joint account - ensure at least 2 holders
+        if (formData.accountHolderNames.length < 2) {
+          setFormData(prev => ({
+            ...prev,
+            accountHolderNames: prev.accountHolderNames.length > 0 ? [...prev.accountHolderNames, ''] : ['', '']
+          }));
+        }
       }
     }
-  }, [formData.accountOwnershipType]);
+  }, [formData.accountOwnershipType, mode, initialData?.accountHolderNames?.length]);
 
   // Auto-set branch code when post office is selected
   useEffect(() => {
@@ -663,40 +675,25 @@ const AccountForm: React.FC<AccountFormProps> = ({
                     <div className="joint-holders">
                       {formData.accountHolderNames.map((name, index) => (
                         <div key={index} className="joint-holder-input">
-                          {index === 0 ? (
-                            // First holder uses the searchable dropdown
-                            <ClientSearchDropdown
-                              value={name}
-                              onChange={(value) => handleHolderNamesChange(index, value)}
-                              placeholder={`Search for client ${index + 1}...`}
-                              className={errors.accountHolderNames ? 'error' : ''}
-                              onClientSelect={(client) => {
-                                const fullName = `${client.firstName} ${client.lastName}`.trim();
-                                handleHolderNamesChange(index, fullName);
-                              }}
-                            />
-                          ) : (
-                            // Additional holders can use regular input or dropdown
-                            <div className="holder-input-group">
-                              <ClientSearchDropdown
-                                value={name}
-                                onChange={(value) => handleHolderNamesChange(index, value)}
-                                placeholder={`Search for client ${index + 1}...`}
-                                className={errors.accountHolderNames ? 'error' : ''}
-                                onClientSelect={(client) => {
-                                  const fullName = `${client.firstName} ${client.lastName}`.trim();
-                                  handleHolderNamesChange(index, fullName);
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className="remove-holder-btn"
-                                onClick={() => removeHolder(index)}
-                                title="Remove holder"
-                              >
-                                ✕
-                              </button>
-                            </div>
+                          <ClientSearchDropdown
+                            value={name}
+                            onChange={(value) => handleHolderNamesChange(index, value)}
+                            placeholder={`Search for client ${index + 1}...`}
+                            className={errors.accountHolderNames ? 'error' : ''}
+                            onClientSelect={(client) => {
+                              const fullName = `${client.firstName} ${client.lastName}`.trim();
+                              handleHolderNamesChange(index, fullName);
+                            }}
+                          />
+                          {index > 0 && (
+                            <button
+                              type="button"
+                              className="remove-holder-btn"
+                              onClick={() => removeHolder(index)}
+                              title="Remove holder"
+                            >
+                              ✕
+                            </button>
                           )}
                           <div className="help-text">
                             Start typing to search for existing clients in the database

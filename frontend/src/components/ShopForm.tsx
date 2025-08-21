@@ -165,10 +165,16 @@ const PHONE_TYPES = [
 
 const SHOP_STATUSES = [
   { value: 'active', label: 'Active' },
-  { value: 'suspended', label: 'Suspended' }
+  { value: 'pending', label: 'Pending' },
+  { value: 'suspended', label: 'Suspended' },
+  { value: 'inactive', label: 'Inactive' }
 ];
 
 const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialData, mode }) => {
+  console.log('ShopForm rendered with mode:', mode);
+  console.log('ShopForm isOpen:', isOpen);
+  console.log('ShopForm initialData:', initialData);
+  
   const [formData, setFormData] = useState<ShopFormData>({
     shopName: '',
     shopType: 'retail',
@@ -182,8 +188,8 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
       addressLine2: '',
       addressLine3: '',
       state: 'West Bengal',
-      district: 'Nadia',
-      pincode: '741501',
+      district: 'Kolkata',
+      pincode: '',
       country: 'India'
     },
     gstNumber: {
@@ -208,7 +214,7 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
     annualRevenue: 0,
     employeeCount: 1,
     documents: [],
-    status: 'active'
+    status: 'pending'
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -218,7 +224,14 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
   // Initialize form with initial data
   useEffect(() => {
     if (initialData) {
-      setFormData(prev => ({ ...prev, ...initialData }));
+      console.log('ShopForm received initialData:', initialData);
+      console.log('Initial address data:', initialData.address);
+      setFormData(prev => {
+        const newData = { ...prev, ...initialData };
+        console.log('Form data after initialization:', newData);
+        console.log('Address data after initialization:', newData.address);
+        return newData;
+      });
     }
   }, [initialData]);
 
@@ -379,6 +392,9 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
   };
 
   const handleAddressChange = (field: string, value: string) => {
+    console.log('handleAddressChange called:', field, value);
+    console.log('Current formData.address:', formData.address);
+    
     setFormData(prev => ({
       ...prev,
       address: { ...prev.address, [field]: value }
@@ -422,18 +438,33 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    console.log('Form submitted!');
+    console.log('Current formData:', formData);
+    console.log('Current formData.address:', formData.address);
+    
     if (validateForm()) {
+      console.log('Validation passed, calling onSubmit');
       onSubmit(formData);
+    } else {
+      console.log('Validation failed, errors:', errors);
     }
   };
 
   const nextStep = () => {
+    console.log('nextStep called, current step:', currentStep);
+    console.log('Current formData:', formData);
+    
     if (validateForm()) {
+      console.log('Validation passed, moving to next step');
       if (currentStep < 3) {
         setCurrentStep(currentStep + 1);
+        console.log('Moved to step:', currentStep + 1);
       }
+    } else {
+      console.log('Validation failed, cannot move to next step');
+      console.log('Current errors:', errors);
     }
   };
 
@@ -591,7 +622,7 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
 
           {/* Step 3: Address & Contact */}
           {currentStep === 3 && (
-            <form onSubmit={handleSubmit} className="form-step" id="shop-form-step3">
+            <div className="form-step" id="shop-form-step3">
               <h3>Address & Contact Information</h3>
               
               <div className="form-group">
@@ -749,7 +780,7 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
                   + Add Phone Number
                 </button>
               </div>
-            </form>
+            </div>
           )}
 
           <div className="form-actions">
@@ -764,7 +795,7 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
                 Next
               </button>
             ) : (
-              <button type="submit" form="shop-form-step3" className="btn-primary">
+              <button type="button" onClick={handleSubmit} className="btn-primary">
                 {mode === 'add' ? 'Create Shop' : 'Update Shop'}
               </button>
             )}

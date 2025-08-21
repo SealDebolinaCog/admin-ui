@@ -22,6 +22,9 @@ export function initializeDatabase() {
       lastName TEXT NOT NULL,
       email TEXT UNIQUE,
       phone TEXT,
+      kycNumber TEXT,
+      panNumber TEXT,
+      aadhaarNumber TEXT,
       addressLine1 TEXT,
       addressLine2 TEXT,
       addressLine3 TEXT,
@@ -29,13 +32,77 @@ export function initializeDatabase() {
       district TEXT,
       pincode TEXT,
       country TEXT DEFAULT 'India',
-      nomineeName TEXT,
-      nomineeRelation TEXT,
-      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'closed')),
+      status TEXT DEFAULT 'active' CHECK (status IN ('invite_now', 'pending', 'active', 'suspended', 'deleted')),
+      linkedClientId TEXT,
+      linkedClientName TEXT,
+      linkedClientRelationship TEXT,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migrate existing database - remove nominee columns if they exist
+  try {
+    // Check if old columns exist
+    const tableInfo = db.prepare("PRAGMA table_info(clients)").all();
+    const hasNomineeName = tableInfo.some((col: any) => col.name === 'nomineeName');
+    const hasNomineeRelation = tableInfo.some((col: any) => col.name === 'nomineeRelation');
+    
+    if (hasNomineeName || hasNomineeRelation) {
+      console.log('Migrating database schema - removing nominee columns...');
+      
+      // Create new table with correct schema
+      db.exec(`
+        CREATE TABLE clients_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          firstName TEXT NOT NULL,
+          lastName TEXT NOT NULL,
+          email TEXT UNIQUE,
+          phone TEXT,
+          kycNumber TEXT,
+          panNumber TEXT,
+          aadhaarNumber TEXT,
+          addressLine1 TEXT,
+          addressLine2 TEXT,
+          addressLine3 TEXT,
+          state TEXT,
+          district TEXT,
+          pincode TEXT,
+          country TEXT DEFAULT 'India',
+          status TEXT DEFAULT 'active' CHECK (status IN ('invite_now', 'pending', 'active', 'suspended', 'deleted')),
+          linkedClientId TEXT,
+          linkedClientName TEXT,
+          linkedClientRelationship TEXT,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Copy data from old table to new table
+      db.exec(`
+        INSERT INTO clients_new (
+          id, firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
+          addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt,
+          linkedClientId, linkedClientName, linkedClientRelationship
+        )
+        SELECT 
+          id, firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
+          addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt,
+          NULL, NULL, NULL
+        FROM clients
+      `);
+      
+      // Drop old table and rename new table
+      db.exec('DROP TABLE clients');
+      db.exec('ALTER TABLE clients_new RENAME TO clients');
+      
+      console.log('Database migration completed successfully');
+    } else {
+      console.log('Database schema is already up to date');
+    }
+  } catch (error) {
+    console.log('Database migration not needed or failed:', error);
+  }
 
   // Create shops table
   db.exec(`
@@ -44,7 +111,7 @@ export function initializeDatabase() {
       shopName TEXT NOT NULL,
       shopType TEXT,
       category TEXT,
-      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'suspended')),
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended', 'inactive')),
       ownerName TEXT NOT NULL,
       ownerEmail TEXT,
       ownerPhone TEXT,

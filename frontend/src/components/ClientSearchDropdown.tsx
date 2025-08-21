@@ -50,6 +50,13 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
     };
   }, []);
 
+  // Sync searchTerm with value prop when it changes
+  useEffect(() => {
+    if (value && value !== searchTerm) {
+      setSearchTerm(value);
+    }
+  }, [value]);
+
   // Search clients when search term changes
   useEffect(() => {
     const searchClients = async () => {

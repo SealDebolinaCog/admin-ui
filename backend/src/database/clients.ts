@@ -6,6 +6,9 @@ export interface Client {
   lastName: string;
   email?: string;
   phone?: string;
+  kycNumber?: string;
+  panNumber?: string;
+  aadhaarNumber?: string;
   addressLine1?: string;
   addressLine2?: string;
   addressLine3?: string;
@@ -13,9 +16,10 @@ export interface Client {
   district?: string;
   pincode?: string;
   country?: string;
-  nomineeName?: string;
-  nomineeRelation?: string;
-  status: 'active' | 'suspended' | 'closed';
+  status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
+  linkedClientId?: string;
+  linkedClientName?: string;
+  linkedClientRelationship?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -73,9 +77,11 @@ export class ClientRepository {
   create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>): Client {
     const stmt = this.db.prepare(`
       INSERT INTO clients (
-        firstName, lastName, email, phone, addressLine1, addressLine2, addressLine3,
-        state, district, pincode, country, nomineeName, nomineeRelation, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
+        addressLine1, addressLine2, addressLine3,
+        state, district, pincode, country, status,
+        linkedClientId, linkedClientName, linkedClientRelationship
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = stmt.run(
@@ -83,6 +89,9 @@ export class ClientRepository {
       client.lastName,
       client.email || null,
       client.phone || null,
+      client.kycNumber || null,
+      client.panNumber || null,
+      client.aadhaarNumber || null,
       client.addressLine1 || null,
       client.addressLine2 || null,
       client.addressLine3 || null,
@@ -90,9 +99,10 @@ export class ClientRepository {
       client.district || null,
       client.pincode || null,
       client.country || 'India',
-      client.nomineeName || null,
-      client.nomineeRelation || null,
-      client.status
+      client.status,
+      client.linkedClientId || null,
+      client.linkedClientName || null,
+      client.linkedClientRelationship || null
     );
 
     return { ...client, id: result.lastInsertRowid as number };
@@ -102,6 +112,9 @@ export class ClientRepository {
   update(id: number, client: Partial<Omit<Client, 'id' | 'createdAt' | 'updatedAt'>>): boolean {
     const fields: string[] = [];
     const values: any[] = [];
+
+    console.log('Updating client in repository with ID:', id);
+    console.log('Client data to update:', client);
 
     Object.entries(client).forEach(([key, value]) => {
       if (value !== undefined) {
@@ -113,12 +126,18 @@ export class ClientRepository {
     if (fields.length === 0) return false;
 
     fields.push('updatedAt = CURRENT_TIMESTAMP');
+    
+    // Add the id parameter for the WHERE clause
     values.push(id);
 
     const query = `UPDATE clients SET ${fields.join(', ')} WHERE id = ?`;
+    console.log('SQL Query:', query);
+    console.log('Values:', values);
+    
     const stmt = this.db.prepare(query);
     const result = stmt.run(...values);
 
+    console.log('Update result:', result);
     return result.changes > 0;
   }
 

@@ -374,32 +374,38 @@
 /* Optimized Column Widths */
 .users-table th:nth-child(1), /* Client */
 .users-table td:nth-child(1) {
-  width: 35%;
-  min-width: 250px;
-}
-
-.users-table th:nth-child(2), /* Address */
-.users-table td:nth-child(2) {
-  width: 30%;
+  width: 25%;
   min-width: 200px;
 }
 
-.users-table th:nth-child(3), /* Mobile */
+.users-table th:nth-child(2), /* Email */
+.users-table td:nth-child(2) {
+  width: 25%;
+  min-width: 200px;
+}
+
+.users-table th:nth-child(3), /* Phone */
 .users-table td:nth-child(3) {
   width: 20%;
   min-width: 150px;
 }
 
-.users-table th:nth-child(4), /* Status */
+.users-table th:nth-child(4), /* Address */
 .users-table td:nth-child(4) {
+  width: 20%;
+  min-width: 200px;
+}
+
+.users-table th:nth-child(5), /* Status */
+.users-table td:nth-child(5) {
   width: 12%;
   min-width: 130px;
   white-space: nowrap;
 }
 
-.users-table th:nth-child(5), /* Actions */
-.users-table td:nth-child(5) {
-  width: 5%;
+.users-table th:nth-child(6), /* Actions */
+.users-table td:nth-child(6) {
+  width: 8%;
   min-width: 120px;
 }
 
@@ -495,6 +501,21 @@
 .table-status-badge.suspended {
   background: rgba(249, 115, 22, 0.15);
   color: #c2410c;
+}
+
+.table-status-badge.invite_now {
+  background: rgba(99, 102, 241, 0.15);
+  color: #3730a3;
+}
+
+.table-status-badge.deleted {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.table-status-badge.closed {
+  background: rgba(107, 114, 128, 0.15);
+  color: #374151;
 }
 
 .table-status-badge.fined {
@@ -600,19 +621,27 @@
   white-space: nowrap;
 }
 
+.status-cell {
+  text-align: center;
+}
+
+.actions-cell {
+  text-align: center;
+}
+
 @media (max-width: 768px) {
   .users-table-container {
     overflow-x: auto;
   }
   
   .users-table {
-    min-width: 700px;
+    min-width: 800px;
   }
   
-  /* Adjust column widths for mobile */
+  /* Adjust column widths for mobile - 6 columns */
   .users-table th:nth-child(1), 
   .users-table td:nth-child(1) {
-    min-width: 220px;
+    min-width: 180px;
   }
   
   .users-table th:nth-child(2), 
@@ -627,12 +656,17 @@
   
   .users-table th:nth-child(4), 
   .users-table td:nth-child(4) {
-    min-width: 90px;
+    min-width: 180px;
   }
   
   .users-table th:nth-child(5), 
   .users-table td:nth-child(5) {
     min-width: 110px;
+  }
+  
+  .users-table th:nth-child(6), 
+  .users-table td:nth-child(6) {
+    min-width: 120px;
   }
   
   .view-toggle {
@@ -749,6 +783,21 @@
 .status-badge.inactive {
   background: #f8d7da;
   color: #721c24;
+}
+
+.status-badge.suspended {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.deleted {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.invite_now {
+  background: #d1ecf1;
+  color: #0c5460;
 }
 
 .user-details {

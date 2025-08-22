@@ -36,20 +36,22 @@ export function initializeDatabase() {
       linkedClientId TEXT,
       linkedClientName TEXT,
       linkedClientRelationship TEXT,
+      deletionStatus BOOLEAN DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  // Migrate existing database - remove nominee columns if they exist
+  // Migrate existing database - remove nominee columns if they exist and add DeletionStatus
   try {
     // Check if old columns exist
     const tableInfo = db.prepare("PRAGMA table_info(clients)").all();
     const hasNomineeName = tableInfo.some((col: any) => col.name === 'nomineeName');
     const hasNomineeRelation = tableInfo.some((col: any) => col.name === 'nomineeRelation');
+    const hasDeletionStatus = tableInfo.some((col: any) => col.name === 'deletionStatus');
     
-    if (hasNomineeName || hasNomineeRelation) {
-      console.log('Migrating database schema - removing nominee columns...');
+    if (hasNomineeName || hasNomineeRelation || !hasDeletionStatus) {
+      console.log('Migrating clients table schema...');
       
       // Create new table with correct schema
       db.exec(`
@@ -73,6 +75,7 @@ export function initializeDatabase() {
           linkedClientId TEXT,
           linkedClientName TEXT,
           linkedClientRelationship TEXT,
+          deletionStatus BOOLEAN DEFAULT 0,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
           updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -83,12 +86,12 @@ export function initializeDatabase() {
         INSERT INTO clients_new (
           id, firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
           addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt,
-          linkedClientId, linkedClientName, linkedClientRelationship
+          linkedClientId, linkedClientName, linkedClientRelationship, deletionStatus
         )
         SELECT 
           id, firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
           addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt,
-          NULL, NULL, NULL
+          linkedClientId, linkedClientName, linkedClientRelationship, 0
         FROM clients
       `);
       
@@ -96,12 +99,12 @@ export function initializeDatabase() {
       db.exec('DROP TABLE clients');
       db.exec('ALTER TABLE clients_new RENAME TO clients');
       
-      console.log('Database migration completed successfully');
+      console.log('Clients table migration completed successfully');
     } else {
-      console.log('Database schema is already up to date');
+      console.log('Clients table schema is already up to date');
     }
   } catch (error) {
-    console.log('Database migration not needed or failed:', error);
+    console.log('Clients table migration not needed or failed:', error);
   }
 
   // Create shops table
@@ -122,10 +125,27 @@ export function initializeDatabase() {
       district TEXT,
       pincode TEXT,
       country TEXT DEFAULT 'India',
+      deletionStatus BOOLEAN DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migrate shops table if DeletionStatus column doesn't exist
+  try {
+    const shopsTableInfo = db.prepare("PRAGMA table_info(shops)").all();
+    const hasDeletionStatus = shopsTableInfo.some((col: any) => col.name === 'deletionStatus');
+    
+    if (!hasDeletionStatus) {
+      console.log('Adding DeletionStatus column to shops table...');
+      db.exec('ALTER TABLE shops ADD COLUMN deletionStatus BOOLEAN DEFAULT 0');
+      console.log('Shops table migration completed successfully');
+    } else {
+      console.log('Shops table schema is already up to date');
+    }
+  } catch (error) {
+    console.log('Shops table migration not needed or failed:', error);
+  }
 
   // Create shop_clients junction table for many-to-many relationship
   db.exec(`
@@ -175,20 +195,40 @@ export function initializeDatabase() {
       lastPaymentDate TEXT,
       nomineeName TEXT,
       nomineeRelation TEXT,
+      deletionStatus BOOLEAN DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
+  // Migrate accounts table if DeletionStatus column doesn't exist
+  try {
+    const accountsTableInfo = db.prepare("PRAGMA table_info(accounts)").all();
+    const hasDeletionStatus = accountsTableInfo.some((col: any) => col.name === 'deletionStatus');
+    
+    if (!hasDeletionStatus) {
+      console.log('Adding DeletionStatus column to accounts table...');
+      db.exec('ALTER TABLE accounts ADD COLUMN deletionStatus BOOLEAN DEFAULT 0');
+      console.log('Accounts table migration completed successfully');
+    } else {
+      console.log('Accounts table schema is already up to date');
+    }
+  } catch (error) {
+    console.log('Accounts table migration not needed or failed:', error);
+  }
+
   // Create indexes for better performance
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
     CREATE INDEX IF NOT EXISTS idx_clients_name ON clients(firstName, lastName);
+    CREATE INDEX IF NOT EXISTS idx_clients_deletion ON clients(deletionStatus);
     CREATE INDEX IF NOT EXISTS idx_shops_status ON shops(status);
     CREATE INDEX IF NOT EXISTS idx_shops_name ON shops(shopName);
+    CREATE INDEX IF NOT EXISTS idx_shops_deletion ON shops(deletionStatus);
     CREATE INDEX IF NOT EXISTS idx_accounts_status ON accounts(status);
     CREATE INDEX IF NOT EXISTS idx_accounts_number ON accounts(accountNumber);
     CREATE INDEX IF NOT EXISTS idx_accounts_institution ON accounts(institutionType, institutionName);
+    CREATE INDEX IF NOT EXISTS idx_accounts_deletion ON accounts(deletionStatus);
   `);
 
   console.log('Database initialized successfully!');

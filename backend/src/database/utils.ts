@@ -13,6 +13,7 @@ export class DatabaseUtils {
     return {
       clients: {
         total: clientRepo.getCount(),
+        deleted: clientRepo.getCount(true) - clientRepo.getCount(),
         byStatus: {
           active: clientRepo.getByStatus('active').length,
           suspended: clientRepo.getByStatus('suspended').length,
@@ -21,6 +22,7 @@ export class DatabaseUtils {
       },
       shops: {
         total: shopRepo.getCount(),
+        deleted: shopRepo.getCount(true) - shopRepo.getCount(),
         byStatus: {
           active: shopRepo.getByStatus('active').length,
           suspended: shopRepo.getByStatus('suspended').length
@@ -28,6 +30,54 @@ export class DatabaseUtils {
       },
       accounts: {
         total: accountRepo.getCount(),
+        deleted: accountRepo.getCount(true) - accountRepo.getCount(),
+        byStatus: {
+          active: accountRepo.getByStatus('active').length,
+          suspended: accountRepo.getByStatus('suspended').length,
+          fined: accountRepo.getByStatus('fined').length,
+          matured: accountRepo.getByStatus('matured').length,
+          closed: accountRepo.getByStatus('closed').length
+        },
+        byInstitution: {
+          bank: accountRepo.getByInstitutionType('bank').length,
+          post_office: accountRepo.getByInstitutionType('post_office').length
+        }
+      }
+    };
+  }
+
+  // Get comprehensive statistics including deleted records
+  getComprehensiveStats() {
+    const clientRepo = new ClientRepository();
+    const shopRepo = new ShopRepository();
+    const accountRepo = new AccountRepository();
+
+    return {
+      clients: {
+        total: clientRepo.getCount(true),
+        active: clientRepo.getCount(),
+        deleted: clientRepo.getCount(true) - clientRepo.getCount(),
+        byStatus: {
+          active: clientRepo.getByStatus('active').length,
+          suspended: clientRepo.getByStatus('suspended').length,
+          closed: clientRepo.getByStatus('closed').length,
+          deleted: clientRepo.getByStatus('deleted').length
+        }
+      },
+      shops: {
+        total: shopRepo.getCount(true),
+        active: shopRepo.getCount(),
+        deleted: shopRepo.getCount(true) - shopRepo.getCount(),
+        byStatus: {
+          active: shopRepo.getByStatus('active').length,
+          suspended: shopRepo.getByStatus('suspended').length,
+          inactive: shopRepo.getByStatus('inactive').length
+        }
+      },
+      accounts: {
+        total: accountRepo.getCount(true),
+        active: accountRepo.getCount(),
+        deleted: accountRepo.getCount(true) - accountRepo.getCount(),
         byStatus: {
           active: accountRepo.getByStatus('active').length,
           suspended: accountRepo.getByStatus('suspended').length,

@@ -4,10 +4,11 @@ import Dashboard from './components/Dashboard';
 import ClientManagement from './components/ClientManagement';
 import ShopManagement from './components/ShopManagement';
 import AccountsManagement from './components/AccountsManagement';
+import ShopInsights from './components/ShopInsights';
 import Navigation from './components/Navigation';
 
 function App() {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState('users');
 
   const renderContent = () => {
     switch (activeSection) {
@@ -19,8 +20,10 @@ function App() {
         return <ShopManagement />;
       case 'accounts':
         return <AccountsManagement />;
+      case 'shop-insights':
+        return <ShopInsights />;
       default:
-        return <Dashboard />;
+        return <ClientManagement />;
     }
   };
 

@@ -453,18 +453,12 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
   };
 
   const nextStep = () => {
-    console.log('nextStep called, current step:', currentStep);
-    console.log('Current formData:', formData);
-    
     if (validateForm()) {
       console.log('Validation passed, moving to next step');
       if (currentStep < 3) {
         setCurrentStep(currentStep + 1);
         console.log('Moved to step:', currentStep + 1);
       }
-    } else {
-      console.log('Validation failed, cannot move to next step');
-      console.log('Current errors:', errors);
     }
   };
 
@@ -488,14 +482,17 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
           <div className={`progress-step ${currentStep >= 1 ? 'active' : ''}`}>
             <span className="step-number">1</span>
             <span className="step-label">Shop Details</span>
+            {currentStep === 1 && <span className="step-indicator">●</span>}
           </div>
           <div className={`progress-step ${currentStep >= 2 ? 'active' : ''}`}>
             <span className="step-number">2</span>
             <span className="step-label">Owner Info</span>
+            {currentStep === 2 && <span className="step-indicator">●</span>}
           </div>
           <div className={`progress-step ${currentStep >= 3 ? 'active' : ''}`}>
             <span className="step-number">3</span>
             <span className="step-label">Address & Contact</span>
+            {currentStep === 3 && <span className="step-indicator">●</span>}
           </div>
         </div>
 

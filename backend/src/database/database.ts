@@ -127,6 +127,33 @@ export function initializeDatabase() {
     )
   `);
 
+  // Create shop_clients junction table for many-to-many relationship
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shop_clients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shopId INTEGER NOT NULL,
+      clientId INTEGER NOT NULL,
+      addedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (shopId) REFERENCES shops(id) ON DELETE CASCADE,
+      FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE,
+      UNIQUE(shopId, clientId)
+    )
+  `);
+
+  // Migrate shops table if shop_clients table doesn't exist
+  try {
+    const shopClientsTableInfo = db.prepare("PRAGMA table_info(shop_clients)").all();
+    if (shopClientsTableInfo.length === 0) {
+      console.log('Creating shop_clients junction table...');
+      // Table will be created by the CREATE TABLE IF NOT EXISTS above
+      console.log('Shop clients junction table created successfully');
+    } else {
+      console.log('Shop clients junction table already exists');
+    }
+  } catch (error) {
+    console.log('Shop clients table creation check failed:', error);
+  }
+
   // Create accounts table
   db.exec(`
     CREATE TABLE IF NOT EXISTS accounts (

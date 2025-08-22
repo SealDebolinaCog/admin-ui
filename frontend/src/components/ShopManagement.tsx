@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import './UserManagement.css'; // Reuse the same CSS for consistent styling
 import ShopForm from './ShopForm';
+import ShopClientManager from './ShopClientManager';
 import { useMessageHandler } from '../hooks/useMessageHandler';
 import SuccessMessage from './common/SuccessMessage';
 
@@ -69,6 +70,10 @@ const ShopManagement: React.FC = () => {
     newStatus: 'active' | 'pending' | 'suspended' | 'inactive';
     action: string;
   } | null>(null);
+  
+  // Shop Client Manager state
+  const [showShopClientManager, setShowShopClientManager] = useState(false);
+  const [selectedShopForClients, setSelectedShopForClients] = useState<Shop | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -460,6 +465,24 @@ const ShopManagement: React.FC = () => {
     if (appliedFilters.category.length > 0) count++;
     if (appliedFilters.shopType.length > 0) count++;
     return count;
+  };
+
+  // Open shop client manager
+  const openShopClientManager = (shop: Shop) => {
+    setSelectedShopForClients(shop);
+    setShowShopClientManager(true);
+  };
+
+  // Close shop client manager
+  const closeShopClientManager = () => {
+    setShowShopClientManager(false);
+    setSelectedShopForClients(null);
+  };
+
+  // Handle clients changed callback
+  const handleClientsChanged = () => {
+    // Refresh shops data if needed
+    fetchShops();
   };
 
   if (loading && shops.length === 0) {
@@ -1123,6 +1146,13 @@ const ShopManagement: React.FC = () => {
                         ✏️
                       </button>
                       <button 
+                        className="table-action-btn clients-btn"
+                        title="Manage clients"
+                        onClick={() => openShopClientManager(shop)}
+                      >
+                        👥
+                      </button>
+                      <button 
                         className="table-action-btn toggle-status"
                         title={`Cycle status (${shop.status || 'active'} -> next status)`}
                         onClick={() => toggleShopStatus(shop.id!)}
@@ -1195,6 +1225,17 @@ const ShopManagement: React.FC = () => {
       {/* Success Message */}
       {successMessage && (
         <SuccessMessage message={successMessage} onClose={clearSuccessMessage} />
+      )}
+
+      {/* Shop Client Manager */}
+      {showShopClientManager && selectedShopForClients && (
+        <ShopClientManager
+          shopId={selectedShopForClients.id!}
+          shopName={selectedShopForClients.shopName}
+          isOpen={showShopClientManager}
+          onClose={closeShopClientManager}
+          onClientsChanged={handleClientsChanged}
+        />
       )}
     </div>
   );

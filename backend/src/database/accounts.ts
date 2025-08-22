@@ -34,6 +34,7 @@ export class AccountRepository {
     accountType?: string;
     paymentType?: string;
     tenureRange?: string;
+    clientIds?: number[];
   }): Account[] {
     let query = `
       SELECT * FROM accounts 
@@ -77,6 +78,18 @@ export class AccountRepository {
         query += ` AND tenure >= ?`;
         params.push(min);
       }
+    }
+
+    if (filters?.clientIds && filters.clientIds.length > 0) {
+      // Filter accounts by client IDs - check if any client ID appears in accountHolderNames JSON
+      const placeholders = filters.clientIds.map(() => '?').join(',');
+      query += ` AND (`;
+      filters.clientIds.forEach((clientId, index) => {
+        if (index > 0) query += ' OR ';
+        query += `accountHolderNames LIKE ?`;
+        params.push(`%"${clientId}"%`);
+      });
+      query += ')';
     }
 
     query += ` ORDER BY accountHolderNames, accountNumber`;

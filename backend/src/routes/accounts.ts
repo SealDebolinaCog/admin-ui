@@ -7,7 +7,7 @@ const accountRepo = new AccountRepository();
 // Get all accounts with optional filtering
 router.get('/', (req, res) => {
   try {
-    const { status, search, institutionType, accountType, paymentType, tenureRange } = req.query;
+    const { status, search, institutionType, accountType, paymentType, tenureRange, clientIds } = req.query;
     
     const filters: any = {};
     if (status) filters.status = status as string;
@@ -16,6 +16,7 @@ router.get('/', (req, res) => {
     if (accountType) filters.accountType = accountType as string;
     if (paymentType) filters.paymentType = paymentType as string;
     if (tenureRange) filters.tenureRange = tenureRange as string;
+    if (clientIds) filters.clientIds = (clientIds as string).split(',').map(id => parseInt(id));
 
     const accounts = accountRepo.getAll(filters);
     res.json({

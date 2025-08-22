@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { ShopRepository, type Shop } from '../database/shops';
+import { ShopClientRepository } from '../database/shopClients';
 
 const router = Router();
 const shopRepo = new ShopRepository();
+const shopClientRepo = new ShopClientRepository();
 
 // Get all shops with optional filtering
 router.get('/', (req, res) => {
@@ -229,6 +231,32 @@ router.get('/category/:category', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch shops by category',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Get clients linked to a shop
+router.get('/:id/clients', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid shop ID'
+      });
+    }
+
+    const clients = shopClientRepo.getClientsForShop(id);
+    res.json({
+      success: true,
+      data: clients,
+      count: clients.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch shop clients',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }

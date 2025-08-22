@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import ShopDetails from './ShopDetails';
 import './ShopInsights.css';
 
 interface Shop {
@@ -17,6 +18,7 @@ const ShopInsights: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,17 +77,26 @@ const ShopInsights: React.FC = () => {
     setSelectedShop(shop);
     setSearchQuery(shop.shopName);
     setShowDropdown(false);
-    // TODO: Load shop insights/analytics for selected shop
-    console.log('Selected shop:', shop);
+    setShowDetails(true);
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedShop) {
-      // TODO: Implement shop insights display
-      console.log('Show insights for:', selectedShop);
+      setShowDetails(true);
     }
   };
+
+  const handleBackToInsights = () => {
+    setShowDetails(false);
+    setSelectedShop(null);
+    setSearchQuery('');
+  };
+
+  // Show shop details if a shop is selected
+  if (showDetails && selectedShop) {
+    return <ShopDetails shopId={selectedShop.id} onBack={handleBackToInsights} />;
+  }
 
   return (
     <div className="shop-insights">

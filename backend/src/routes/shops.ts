@@ -130,7 +130,7 @@ router.put('/:id', (req, res) => {
   }
 });
 
-// Delete shop
+// Soft delete shop (set deletionStatus to true)
 router.delete('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -151,12 +151,96 @@ router.delete('/:id', (req, res) => {
 
     res.json({
       success: true,
-      message: 'Shop deleted successfully'
+      message: 'Shop soft deleted successfully (marked for deletion)'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Failed to delete shop',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Hard delete shop (permanently remove from database)
+router.delete('/:id/hard', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid shop ID'
+      });
+    }
+
+    const success = shopRepo.hardDelete(id);
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Shop not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Shop permanently deleted from database'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to hard delete shop',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Restore deleted shop (set deletionStatus to false)
+router.post('/:id/restore', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid shop ID'
+      });
+    }
+
+    const success = shopRepo.restore(id);
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Shop not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Shop restored successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to restore shop',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Get deleted shops
+router.get('/deleted', (req, res) => {
+  try {
+    const shops = shopRepo.getAll({ includeDeleted: true });
+    const deletedShops = shops.filter(shop => shop.deletionStatus);
+    
+    res.json({
+      success: true,
+      data: deletedShops,
+      count: deletedShops.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch deleted shops',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }

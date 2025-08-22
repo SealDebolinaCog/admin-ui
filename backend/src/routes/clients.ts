@@ -132,7 +132,7 @@ router.put('/:id', (req, res) => {
   }
 });
 
-// Delete client
+// Soft delete client (set deletionStatus to true)
 router.delete('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -153,12 +153,96 @@ router.delete('/:id', (req, res) => {
 
     res.json({
       success: true,
-      message: 'Client deleted successfully'
+      message: 'Client soft deleted successfully (marked for deletion)'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Failed to delete client',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Hard delete client (permanently remove from database)
+router.delete('/:id/hard', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid client ID'
+      });
+    }
+
+    const success = clientRepo.hardDelete(id);
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Client not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Client permanently deleted from database'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to hard delete client',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Restore deleted client (set deletionStatus to false)
+router.post('/:id/restore', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid client ID'
+      });
+    }
+
+    const success = clientRepo.restore(id);
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Client not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Client restored successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to restore client',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Get deleted clients
+router.get('/deleted', (req, res) => {
+  try {
+    const clients = clientRepo.getAll({ includeDeleted: true });
+    const deletedClients = clients.filter(client => client.deletionStatus);
+    
+    res.json({
+      success: true,
+      data: deletedClients,
+      count: deletedClients.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch deleted clients',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }

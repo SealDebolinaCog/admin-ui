@@ -176,7 +176,7 @@ router.put('/:id', (req, res) => {
   }
 });
 
-// Delete account
+// Soft delete account (set deletionStatus to true)
 router.delete('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -197,12 +197,96 @@ router.delete('/:id', (req, res) => {
 
     res.json({
       success: true,
-      message: 'Account deleted successfully'
+      message: 'Account soft deleted successfully (marked for deletion)'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       error: 'Failed to delete account',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Hard delete account (permanently remove from database)
+router.delete('/:id/hard', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid account ID'
+      });
+    }
+
+    const success = accountRepo.hardDelete(id);
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Account permanently deleted from database'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to hard delete account',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Restore deleted account (set deletionStatus to false)
+router.post('/:id/restore', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid account ID'
+      });
+    }
+
+    const success = accountRepo.restore(id);
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Account restored successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to restore account',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Get deleted accounts
+router.get('/deleted', (req, res) => {
+  try {
+    const accounts = accountRepo.getAll({ includeDeleted: true });
+    const deletedAccounts = accounts.filter(account => account.deletionStatus);
+    
+    res.json({
+      success: true,
+      data: deletedAccounts,
+      count: deletedAccounts.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch deleted accounts',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }

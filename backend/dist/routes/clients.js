@@ -99,6 +99,8 @@ router.put('/:id', (req, res) => {
             });
         }
         const updateData = req.body;
+        console.log('Updating client with ID:', id);
+        console.log('Update data received:', updateData);
         const success = clientRepo.update(id, updateData);
         if (!success) {
             return res.status(404).json({
@@ -107,6 +109,7 @@ router.put('/:id', (req, res) => {
             });
         }
         const updatedClient = clientRepo.getById(id);
+        console.log('Client updated successfully:', updatedClient);
         res.json({
             success: true,
             data: updatedClient,
@@ -114,6 +117,7 @@ router.put('/:id', (req, res) => {
         });
     }
     catch (error) {
+        console.error('Error updating client:', error);
         res.status(500).json({
             success: false,
             error: 'Failed to update client',

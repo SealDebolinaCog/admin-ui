@@ -13,6 +13,12 @@ export async function seedDatabase() {
     return;
   }
 
+  // Skip seeding in production or if explicitly disabled
+  if (process.env.NODE_ENV === 'production' || process.env.SKIP_SEED === 'true') {
+    console.log('Seeding disabled, skipping...');
+    return;
+  }
+
   // Seed Clients
   const sampleClients = [
     {

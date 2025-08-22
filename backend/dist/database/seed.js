@@ -19,45 +19,71 @@ async function seedDatabase() {
             lastName: 'Doe',
             email: 'john.doe@example.com',
             phone: '9876543210',
+            kycNumber: 'KYC001234567',
+            panNumber: 'ABCDE1234F',
+            aadhaarNumber: '123456789012',
             addressLine1: '123 Main Street',
             addressLine2: 'Apt 4B',
             state: 'Maharashtra',
             district: 'Mumbai',
             pincode: '400001',
-            nomineeName: 'Jane Doe',
-            nomineeRelation: 'Spouse',
-            status: 'active'
+            status: 'active',
+            linkedClientId: '2', // Link to Alice Johnson
+            linkedClientName: 'Alice Johnson',
+            linkedClientRelationship: 'spouse'
         },
         {
             firstName: 'Alice',
             lastName: 'Johnson',
             email: 'alice.johnson@example.com',
             phone: '8765432109',
+            kycNumber: 'KYC009876543',
+            panNumber: 'FGHIJ5678K',
+            aadhaarNumber: '987654321098',
             addressLine1: '456 Park Avenue',
             addressLine2: 'Suite 10',
             state: 'Delhi',
             district: 'New Delhi',
             pincode: '110001',
-            nomineeName: 'Bob Johnson',
-            nomineeRelation: 'Father',
-            status: 'active'
+            status: 'active',
+            linkedClientId: '1', // Link to John Doe
+            linkedClientName: 'John Doe',
+            linkedClientRelationship: 'spouse'
         },
         {
             firstName: 'Michael',
             lastName: 'Brown',
             email: 'michael.brown@example.com',
             phone: '7654321098',
+            kycNumber: 'KYC005555555',
+            panNumber: 'LMNOP9012Q',
+            aadhaarNumber: '555555555555',
             addressLine1: '789 Oak Road',
             state: 'Karnataka',
             district: 'Bangalore',
             pincode: '560001',
-            nomineeName: 'Sarah Brown',
-            nomineeRelation: 'Sister',
             status: 'suspended'
         }
     ];
     sampleClients.forEach(client => {
-        clientRepo.create(client);
+        clientRepo.create({
+            firstName: client.firstName,
+            lastName: client.lastName,
+            email: client.email,
+            phone: client.phone,
+            kycNumber: client.kycNumber,
+            panNumber: client.panNumber,
+            aadhaarNumber: client.aadhaarNumber,
+            addressLine1: client.addressLine1,
+            addressLine2: client.addressLine2,
+            state: client.state,
+            district: client.district,
+            pincode: client.pincode,
+            status: client.status,
+            linkedClientId: client.linkedClientId,
+            linkedClientName: client.linkedClientName,
+            linkedClientRelationship: client.linkedClientRelationship
+        });
     });
     // Seed Shops
     const sampleShops = [
@@ -101,6 +127,32 @@ async function seedDatabase() {
             state: 'Tamil Nadu',
             district: 'Chennai',
             pincode: '600001'
+        },
+        {
+            shopName: 'Pending Approval Shop',
+            shopType: 'Service',
+            category: 'Consulting',
+            status: 'pending',
+            ownerName: 'Robert Chen',
+            ownerEmail: 'robert@pendingconsulting.com',
+            ownerPhone: '3210987654',
+            addressLine1: '456 Approval Lane',
+            state: 'Karnataka',
+            district: 'Bangalore',
+            pincode: '560002'
+        },
+        {
+            shopName: 'Inactive Business',
+            shopType: 'Retail',
+            category: 'Electronics',
+            status: 'inactive',
+            ownerName: 'Maria Garcia',
+            ownerEmail: 'maria@inactiveelectronics.com',
+            ownerPhone: '2109876543',
+            addressLine1: '789 Closed Street',
+            state: 'Delhi',
+            district: 'New Delhi',
+            pincode: '110002'
         }
     ];
     sampleShops.forEach(shop => {

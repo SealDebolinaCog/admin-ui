@@ -633,6 +633,171 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
     }
   };
 
+  // Quick fill function to populate form with test data
+  const handleQuickFill = () => {
+    // Generate a random test data set
+    const testDataSets = [
+      {
+        shopName: 'Tech Solutions Hub',
+        shopType: 'service' as const,
+        category: 'Technology',
+        description: 'Comprehensive IT solutions and digital transformation services',
+        ownerName: 'Rajesh Kumar',
+        ownerEmail: 'test@test.com',
+        ownerPhone: '9876543210',
+        address: {
+          addressLine1: '123 Tech Park',
+          addressLine2: 'Block A, Floor 3',
+          addressLine3: 'Innovation Zone',
+          state: 'West Bengal',
+          district: 'Kolkata',
+          pincode: '700001',
+          country: 'India'
+        },
+        gstNumber: {
+          number: '19ABCDE1234F1Z5',
+          verificationStatus: 'pending' as const
+        },
+        panNumber: {
+          number: 'ABCDE1234F',
+          verificationStatus: 'pending' as const
+        },
+        businessLicenseNumber: 'BL202400001',
+        registrationDate: '2024-01-15',
+        shopPhoneNumbers: [
+          {
+            id: '1',
+            countryCode: '+91',
+            number: '9876543210',
+            type: 'primary' as const,
+            isVerified: false
+          },
+          {
+            id: '2',
+            countryCode: '+91',
+            number: '8765432109',
+            type: 'secondary' as const,
+            isVerified: false
+          }
+        ],
+        shopEmail: 'info@techsolutions.com',
+        website: 'www.techsolutions.com',
+        annualRevenue: 2500000,
+        employeeCount: 25
+      },
+      {
+        shopName: 'Green Grocers Market',
+        shopType: 'retail' as const,
+        category: 'Food & Beverages',
+        description: 'Fresh fruits, vegetables, and organic grocery store',
+        ownerName: 'Priya Sharma',
+        ownerEmail: 'test@test.com',
+        ownerPhone: '8765432109',
+        address: {
+          addressLine1: '456 Market Street',
+          addressLine2: 'Shop 15',
+          addressLine3: 'Food Court Area',
+          state: 'West Bengal',
+          district: 'Kolkata',
+          pincode: '700010',
+          country: 'India'
+        },
+        gstNumber: {
+          number: '19FGHIJ5678K2Z6',
+          verificationStatus: 'pending' as const
+        },
+        panNumber: {
+          number: 'FGHIJ5678K',
+          verificationStatus: 'pending' as const
+        },
+        businessLicenseNumber: 'BL202400002',
+        registrationDate: '2024-02-20',
+        shopPhoneNumbers: [
+          {
+            id: '1',
+            countryCode: '+91',
+            number: '8765432109',
+            type: 'primary' as const,
+            isVerified: false
+          }
+        ],
+        shopEmail: 'contact@greengrocers.com',
+        website: 'www.greengrocers.com',
+        annualRevenue: 800000,
+        employeeCount: 8
+      },
+      {
+        shopName: 'Fashion Forward Boutique',
+        shopType: 'retail' as const,
+        category: 'Fashion & Apparel',
+        description: 'Trendy fashion boutique with latest designer collections',
+        ownerName: 'Amit Patel',
+        ownerEmail: 'test@test.com',
+        ownerPhone: '7654321098',
+        address: {
+          addressLine1: '789 Fashion Mall',
+          addressLine2: 'Unit 25',
+          addressLine3: 'Luxury Wing',
+          state: 'West Bengal',
+          district: 'Kolkata',
+          pincode: '700011',
+          country: 'India'
+        },
+        gstNumber: {
+          number: '19LMNOP9012Q3Z7',
+          verificationStatus: 'pending' as const
+        },
+        panNumber: {
+          number: 'LMNOP9012Q',
+          verificationStatus: 'pending' as const
+        },
+        businessLicenseNumber: 'BL202400003',
+        registrationDate: '2024-03-10',
+        shopPhoneNumbers: [
+          {
+            id: '1',
+            countryCode: '+91',
+            number: '7654321098',
+            type: 'primary' as const,
+            isVerified: false
+          }
+        ],
+        shopEmail: 'style@fashionforward.com',
+        website: 'www.fashionforward.com',
+        annualRevenue: 1500000,
+        employeeCount: 12
+      }
+    ];
+
+    // Randomly select one of the test data sets
+    const randomIndex = Math.floor(Math.random() * testDataSets.length);
+    const selectedTestData = testDataSets[randomIndex];
+
+    const testData: ShopFormData = {
+      ...selectedTestData,
+      documents: [],
+      status: 'pending'
+    };
+
+    setFormData(testData);
+    
+    // Clear any existing errors
+    setErrors({});
+    
+    // Show success message with a brief flash effect
+    const button = document.querySelector('.quick-fill-btn') as HTMLButtonElement;
+    if (button) {
+      button.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+      button.style.transform = 'scale(1.05)';
+      setTimeout(() => {
+        button.style.transform = 'scale(1)';
+      }, 200);
+    }
+    
+    // Show success message
+    console.log(`Form populated with test data for ${testData.shopName}`);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -640,7 +805,19 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
       <div className="shop-form-modal">
         <div className="shop-form-header">
           <h2>{mode === 'add' ? 'Add New Shop' : 'Edit Shop'}</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+          <div className="header-actions">
+            {mode === 'add' && (
+              <button 
+                type="button" 
+                className="quick-fill-btn" 
+                onClick={handleQuickFill}
+                title="Quick fill with test data"
+              >
+                ⚡ Quick Fill
+              </button>
+            )}
+            <button className="close-button" onClick={onClose}>×</button>
+          </div>
         </div>
 
         <div className="shop-form-progress">

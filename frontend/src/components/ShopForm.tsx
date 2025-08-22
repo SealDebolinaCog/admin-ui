@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ShopForm.css';
+import ClientSearchDropdown from './ClientSearchDropdown';
+import axios from 'axios'; // Added axios import
 
 // Shop interfaces (matching backend structure)
 interface PhoneNumber {
@@ -43,7 +45,7 @@ interface Document {
 }
 
 interface ShopFormData {
-  // Shop details
+  id?: number;
   shopName: string;
   shopType: 'retail' | 'wholesale' | 'ecommerce' | 'service' | 'restaurant' | 'other';
   category: string;
@@ -220,20 +222,58 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currentStep, setCurrentStep] = useState(1);
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [shopClients, setShopClients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   // Initialize form with initial data
   useEffect(() => {
     if (initialData) {
-      console.log('ShopForm received initialData:', initialData);
-      console.log('Initial address data:', initialData.address);
-      setFormData(prev => {
-        const newData = { ...prev, ...initialData };
-        console.log('Form data after initialization:', newData);
-        console.log('Address data after initialization:', newData.address);
-        return newData;
+      console.log('ShopForm: Initializing with data:', initialData);
+      setFormData({
+        id: initialData.id,
+        shopName: initialData.shopName || '',
+        shopType: initialData.shopType || 'retail',
+        category: initialData.category || 'electronics',
+        description: initialData.description || '',
+        ownerName: initialData.ownerName || '',
+        ownerEmail: initialData.ownerEmail || '',
+        ownerPhone: initialData.ownerPhone || '',
+        address: {
+          addressLine1: initialData.address?.addressLine1 || '',
+          addressLine2: initialData.address?.addressLine2 || '',
+          addressLine3: initialData.address?.addressLine3 || '',
+          state: initialData.address?.state || 'West Bengal',
+          district: initialData.address?.district || 'Kolkata',
+          pincode: initialData.address?.pincode || '',
+          country: initialData.address?.country || 'India'
+        },
+        gstNumber: initialData.gstNumber || { number: '', verificationStatus: 'pending' },
+        panNumber: initialData.panNumber || { number: '', verificationStatus: 'pending' },
+        businessLicenseNumber: initialData.businessLicenseNumber || '',
+        registrationDate: initialData.registrationDate || new Date().toISOString().split('T')[0],
+        shopPhoneNumbers: initialData.shopPhoneNumbers || [{
+          id: 'phone-1',
+          countryCode: '+91',
+          number: '',
+          type: 'primary',
+          isVerified: false
+        }],
+        shopEmail: initialData.shopEmail || '',
+        website: initialData.website || '',
+        annualRevenue: initialData.annualRevenue || 0,
+        employeeCount: initialData.employeeCount || 1,
+        documents: initialData.documents || [],
+        status: initialData.status || 'pending'
       });
+
+      // Fetch existing clients if editing
+      if (mode === 'edit' && initialData.id) {
+        console.log('ShopForm: Fetching clients for shop ID:', initialData.id);
+        fetchShopClients(initialData.id);
+      }
     }
-  }, [initialData]);
+  }, [initialData, mode]);
 
   // Update districts when state changes
   useEffect(() => {
@@ -335,6 +375,12 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
       if (!validatePincode(formData.address.pincode)) newErrors.pincode = 'Invalid pincode format';
     }
 
+    // Step 4 validation (Manage Clients) - No validation required, informational step
+    if (currentStep === 4) {
+      // This step is informational only, no validation required
+      // Users can proceed to submit the form
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -397,12 +443,115 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
     
     setFormData(prev => ({
       ...prev,
-      address: { ...prev.address, [field]: value }
+      address: {
+        ...prev.address,
+        [field]: value
+      }
     }));
     
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  // Client management functions
+  const handleClientSelect = (client: any) => {
+    setSelectedClient(client);
+  };
+
+  const fetchShopClients = async (shopId: number) => {
+    try {
+      console.log('ShopForm: Fetching clients for shop ID:', shopId);
+      setLoading(true);
+      const response = await axios.get(`/api/shop-clients/shop/${shopId}`);
+      console.log('ShopForm: API response:', response.data);
+      
+      if (response.data.success) {
+        const clients = response.data.data.map((client: any) => ({
+          id: client.id,
+          clientId: client.clientId,
+          firstName: client.clientFirstName,
+          lastName: client.clientLastName,
+          email: client.clientEmail,
+          phone: client.clientPhone
+        }));
+        console.log('ShopForm: Mapped clients:', clients);
+        setShopClients(clients);
+      } else {
+        console.error('ShopForm: API returned error:', response.data.error);
+      }
+    } catch (error) {
+      console.error('ShopForm: Error fetching shop clients:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addClientToShop = async () => {
+    if (!selectedClient) return;
+    
+    console.log('ShopForm: Adding client to shop:', selectedClient);
+    setLoading(true);
+    try {
+      // For edit mode, add client immediately to database
+      if (mode === 'edit' && initialData?.id) {
+        console.log('ShopForm: Edit mode - adding client to database for shop ID:', initialData.id);
+        const response = await axios.post('/api/shop-clients', {
+          shopId: initialData.id,
+          clientId: selectedClient.id,
+        });
+        
+        console.log('ShopForm: API response for adding client:', response.data);
+        
+        if (response.data.success) {
+          console.log('ShopForm: Client added successfully, refreshing list');
+          // Refresh the client list
+          await fetchShopClients(initialData.id);
+          setSelectedClient(null);
+        } else {
+          console.error('ShopForm: Failed to add client:', response.data.error);
+        }
+      } else {
+        console.log('ShopForm: Add mode - adding client to local state');
+        // For add mode, just add to local state
+        const newClient = {
+          id: Date.now(), // Temporary ID
+          clientId: selectedClient.id,
+          firstName: selectedClient.firstName,
+          lastName: selectedClient.lastName,
+          email: selectedClient.email,
+          phone: selectedClient.phone
+        };
+        
+        console.log('ShopForm: Adding client to local state:', newClient);
+        setShopClients(prev => [...prev, newClient]);
+        setSelectedClient(null);
+      }
+    } catch (error) {
+      console.error('ShopForm: Error adding client:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeClientFromShop = async (clientId: number) => {
+    console.log('ShopForm: Removing client with ID:', clientId);
+    try {
+      // For edit mode, remove from database immediately
+      if (mode === 'edit' && initialData?.id) {
+        console.log('ShopForm: Edit mode - removing client from database for shop ID:', initialData.id);
+        await axios.delete(`/api/shop-clients/shop/${initialData.id}/client/${clientId}`);
+        console.log('ShopForm: Client removed from database, refreshing list');
+        // Refresh the client list
+        await fetchShopClients(initialData.id);
+      } else {
+        console.log('ShopForm: Add mode - removing client from local state');
+        // For add mode, just remove from local state
+        setShopClients(prev => prev.filter(client => client.clientId !== clientId));
+      }
+    } catch (error) {
+      console.error('ShopForm: Error removing client:', error);
     }
   };
 
@@ -438,15 +587,31 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
     }));
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     console.log('Form submitted!');
     console.log('Current formData:', formData);
     console.log('Current formData.address:', formData.address);
+    console.log('Current shopClients:', shopClients);
     
     if (validateForm()) {
       console.log('Validation passed, calling onSubmit');
-      onSubmit(formData);
+      
+      // For add mode, we need to handle client associations after shop creation
+      if (mode === 'add') {
+        // Create a data object that includes both shop data and client associations
+        const submissionData = {
+          ...formData,
+          clientAssociations: [...shopClients]
+        };
+        
+        // Call onSubmit with the enhanced data
+        onSubmit(submissionData);
+      } else {
+        // For edit mode, client associations are already saved in the database
+        // Just pass the shop data
+        onSubmit(formData);
+      }
     } else {
       console.log('Validation failed, errors:', errors);
     }
@@ -455,7 +620,7 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
   const nextStep = () => {
     if (validateForm()) {
       console.log('Validation passed, moving to next step');
-      if (currentStep < 3) {
+      if (currentStep < 4) {
         setCurrentStep(currentStep + 1);
         console.log('Moved to step:', currentStep + 1);
       }
@@ -493,6 +658,11 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
             <span className="step-number">3</span>
             <span className="step-label">Address & Contact</span>
             {currentStep === 3 && <span className="step-indicator">●</span>}
+          </div>
+          <div className={`progress-step ${currentStep >= 4 ? 'active' : ''}`}>
+            <span className="step-number">4</span>
+            <span className="step-label">Manage Clients</span>
+            {currentStep === 4 && <span className="step-indicator">●</span>}
           </div>
         </div>
 
@@ -780,6 +950,67 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
             </div>
           )}
 
+          {/* Step 4: Manage Clients */}
+          {currentStep === 4 && (
+            <div className="form-step">
+              <h3>Manage Clients</h3>
+              
+              <div className="form-section">
+                <h4>Add New Client</h4>
+                <div className="add-client-form">
+                  <div className="form-group">
+                    <label>Select Client</label>
+                    <ClientSearchDropdown
+                      value={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : ''}
+                      onChange={() => {}}
+                      placeholder="Search for a client..."
+                      onClientSelect={handleClientSelect}
+                    />
+                  </div>
+                  <button
+                    className="btn-primary"
+                    onClick={addClientToShop}
+                    disabled={!selectedClient || loading}
+                  >
+                    {loading ? 'Adding...' : 'Add Client to Shop'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <h4>Current Clients ({shopClients.length})</h4>
+                {shopClients.length === 0 ? (
+                  <div className="no-clients-message">
+                    <p>No clients are currently associated with this shop. Use the form above to add your first client.</p>
+                  </div>
+                ) : (
+                  <div className="clients-list">
+                    {shopClients.map(client => (
+                      <div key={client.id} className="client-item">
+                        <div className="client-info">
+                          <div className="client-name">
+                            {client.firstName} {client.lastName}
+                          </div>
+                          <div className="client-details">
+                            {client.email && <span className="client-email">{client.email}</span>}
+                            {client.phone && <span className="client-phone">{client.phone}</span>}
+                          </div>
+                        </div>
+                        <button
+                          className="btn-remove"
+                          onClick={() => removeClientFromShop(client.clientId)}
+                          title="Remove client from shop"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="form-actions">
             {currentStep > 1 && (
               <button type="button" onClick={prevStep} className="btn-secondary">
@@ -787,7 +1018,7 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
               </button>
             )}
             
-            {currentStep < 3 ? (
+            {currentStep < 4 ? (
               <button type="button" onClick={nextStep} className="btn-primary">
                 Next
               </button>

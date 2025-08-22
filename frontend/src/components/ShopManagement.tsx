@@ -212,6 +212,10 @@ const ShopManagement: React.FC = () => {
 
   const handleAddShop = async (shopData: any) => {
     try {
+      // Extract client associations from the shop data
+      const clientAssociations = shopData.clientAssociations || [];
+      console.log('Client associations to be created:', clientAssociations);
+      
       // Map the complex form data to the backend API structure
       const newShopData = {
         shopName: shopData.shopName,
@@ -230,10 +234,40 @@ const ShopManagement: React.FC = () => {
         status: shopData.status || 'pending'
       };
 
+      console.log('Creating shop with data:', newShopData);
+
       // Send POST request to create new shop in the backend
       const response = await axios.post(API_BASE_URL, newShopData);
       
       if (response.data.success) {
+        const newShopId = response.data.data.id;
+        console.log('Shop created successfully with ID:', newShopId);
+        
+        // Create client associations if any clients were selected
+        if (clientAssociations.length > 0) {
+          console.log('Creating client associations for shop ID:', newShopId);
+          try {
+            for (const client of clientAssociations) {
+              console.log('Adding client:', client.clientId, 'to shop:', newShopId);
+              const clientResponse = await axios.post('/api/shop-clients', {
+                shopId: newShopId,
+                clientId: client.clientId
+              });
+              
+              if (clientResponse.data.success) {
+                console.log('Client association created successfully');
+              } else {
+                console.error('Failed to create client association:', clientResponse.data.error);
+              }
+            }
+            console.log('All client associations created successfully');
+          } catch (clientError) {
+            console.error('Error creating client associations:', clientError);
+            // Don't fail the entire operation, just log the error
+            setError('Shop created successfully, but some client associations failed to be created.');
+          }
+        }
+        
         // Reset form
         setShopFormData({
           shopName: '',
@@ -260,13 +294,13 @@ const ShopManagement: React.FC = () => {
         // Refresh the shops data to show the latest changes
         await fetchShops();
         
-        console.log('Shop created successfully');
+        console.log('Shop creation process completed successfully');
       } else {
         throw new Error(response.data.error || 'Failed to create shop');
       }
     } catch (error) {
       console.error('Error creating shop:', error);
-      alert('Failed to create shop. Please try again.');
+      setError('Failed to create shop. Please try again.');
     }
   };
 
@@ -742,6 +776,7 @@ const ShopManagement: React.FC = () => {
           onSubmit={handleEditShop}
           mode="edit"
           initialData={{
+            id: selectedShop.id,
             shopName: selectedShop.shopName,
             shopType: (selectedShop.shopType || 'retail') as 'retail' | 'wholesale' | 'ecommerce' | 'service' | 'restaurant' | 'other',
             category: selectedShop.category,

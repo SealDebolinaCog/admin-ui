@@ -20,6 +20,7 @@ export interface Client {
   linkedClientId?: string;
   linkedClientName?: string;
   linkedClientRelationship?: string;
+  deletionStatus?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -33,12 +34,18 @@ export class ClientRepository {
     search?: string;
     state?: string;
     district?: string;
+    includeDeleted?: boolean;
   }): Client[] {
     let query = `
       SELECT * FROM clients 
       WHERE 1=1
     `;
     const params: any[] = [];
+
+    // Only show non-deleted records by default
+    if (!filters?.includeDeleted) {
+      query += ` AND deletionStatus = 0`;
+    }
 
     if (filters?.status) {
       query += ` AND status = ?`;
@@ -69,19 +76,19 @@ export class ClientRepository {
 
   // Get client by ID
   getById(id: number): Client | undefined {
-    const stmt = this.db.prepare('SELECT * FROM clients WHERE id = ?');
+    const stmt = this.db.prepare('SELECT * FROM clients WHERE id = ? AND deletionStatus = 0');
     return stmt.get(id) as Client | undefined;
   }
 
   // Create new client
-  create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt'>): Client {
+  create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'deletionStatus'>): Client {
     const stmt = this.db.prepare(`
       INSERT INTO clients (
         firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
         addressLine1, addressLine2, addressLine3,
         state, district, pincode, country, status,
-        linkedClientId, linkedClientName, linkedClientRelationship
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        linkedClientId, linkedClientName, linkedClientRelationship, deletionStatus
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
     `);
 
     const result = stmt.run(
@@ -105,7 +112,7 @@ export class ClientRepository {
       client.linkedClientRelationship || null
     );
 
-    return { ...client, id: result.lastInsertRowid as number };
+    return { ...client, id: result.lastInsertRowid as number, deletionStatus: false };
   }
 
   // Update existing client
@@ -141,33 +148,60 @@ export class ClientRepository {
     return result.changes > 0;
   }
 
-  // Delete client
+  // Soft delete client (set deletionStatus to true)
   delete(id: number): boolean {
+    const stmt = this.db.prepare('UPDATE clients SET deletionStatus = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
+    const result = stmt.run(id);
+    return result.changes > 0;
+  }
+
+  // Hard delete client (permanently remove from database)
+  hardDelete(id: number): boolean {
     const stmt = this.db.prepare('DELETE FROM clients WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
   }
 
-  // Get clients count
-  getCount(): number {
-    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM clients');
+  // Restore deleted client (set deletionStatus to false)
+  restore(id: number): boolean {
+    const stmt = this.db.prepare('UPDATE clients SET deletionStatus = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
+    const result = stmt.run(id);
+    return result.changes > 0;
+  }
+
+  // Get clients count (excluding deleted by default)
+  getCount(includeDeleted: boolean = false): number {
+    let query = 'SELECT COUNT(*) as count FROM clients';
+    if (!includeDeleted) {
+      query += ' WHERE deletionStatus = 0';
+    }
+    const stmt = this.db.prepare(query);
     const result = stmt.get() as { count: number };
     return result.count;
   }
 
-  // Get clients by status
-  getByStatus(status: string): Client[] {
-    const stmt = this.db.prepare('SELECT * FROM clients WHERE status = ? ORDER BY firstName, lastName');
+  // Get clients by status (excluding deleted by default)
+  getByStatus(status: string, includeDeleted: boolean = false): Client[] {
+    let query = 'SELECT * FROM clients WHERE status = ?';
+    if (!includeDeleted) {
+      query += ' AND deletionStatus = 0';
+    }
+    query += ' ORDER BY firstName, lastName';
+    const stmt = this.db.prepare(query);
     return stmt.all(status) as Client[];
   }
 
-  // Search clients
-  search(searchTerm: string): Client[] {
-    const stmt = this.db.prepare(`
+  // Search clients (excluding deleted by default)
+  search(searchTerm: string, includeDeleted: boolean = false): Client[] {
+    let query = `
       SELECT * FROM clients 
-      WHERE firstName LIKE ? OR lastName LIKE ? OR email LIKE ?
-      ORDER BY firstName, lastName
-    `);
+      WHERE (firstName LIKE ? OR lastName LIKE ? OR email LIKE ?)
+    `;
+    if (!includeDeleted) {
+      query += ' AND deletionStatus = 0';
+    }
+    query += ' ORDER BY firstName, lastName';
+    const stmt = this.db.prepare(query);
     const term = `%${searchTerm}%`;
     return stmt.all(term, term, term) as Client[];
   }

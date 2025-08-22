@@ -661,6 +661,11 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
             <span className="step-label">Address & Contact</span>
             {currentStep === 3 && <span className="step-indicator">●</span>}
           </div>
+          <div className={`progress-step ${currentStep >= 4 ? 'active' : ''}`}>
+            <span className="step-number">4</span>
+            <span className="step-label">Manage Clients</span>
+            {currentStep === 4 && <span className="step-indicator">●</span>}
+          </div>
         </div>
 
         <div className="shop-form">

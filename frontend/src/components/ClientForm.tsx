@@ -1076,6 +1076,152 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
     setRelationshipDescription('');
   };
 
+  // Quick fill function to populate form with test data
+  const handleQuickFill = () => {
+    // Generate a random test data set
+    const testDataSets = [
+      {
+        firstName: 'John',
+        middleName: 'Michael',
+        lastName: 'Doe',
+        address: {
+          addressLine1: '123 Test Street',
+          addressLine2: 'Apartment 4B',
+          addressLine3: 'Building A',
+          state: 'West Bengal',
+          district: 'Kolkata',
+          pincode: '700001',
+          country: 'India'
+        },
+        kycNumber: 'KYC202400001',
+        email: 'john.doe@test.com',
+        phoneNumbers: [
+          {
+            id: '1',
+            countryCode: '+91',
+            number: '9876543210',
+            type: 'primary' as const,
+            isVerified: false
+          },
+          {
+            id: '2',
+            countryCode: '+91',
+            number: '8765432109',
+            type: 'secondary' as const,
+            isVerified: false
+          }
+        ],
+        panCard: {
+          number: 'ABCDE1234F',
+          verificationStatus: 'pending' as const
+        },
+        aadhaarCard: {
+          number: '123456789012',
+          verificationStatus: 'pending' as const
+        }
+      },
+      {
+        firstName: 'Sarah',
+        middleName: 'Elizabeth',
+        lastName: 'Johnson',
+        address: {
+          addressLine1: '456 Business Park',
+          addressLine2: 'Suite 15',
+          addressLine3: 'Floor 3',
+          state: 'West Bengal',
+          district: 'Kolkata',
+          pincode: '700010',
+          country: 'India'
+        },
+        kycNumber: 'KYC202400002',
+        email: 'sarah.johnson@test.com',
+        phoneNumbers: [
+          {
+            id: '1',
+            countryCode: '+91',
+            number: '8765432109',
+            type: 'primary' as const,
+            isVerified: false
+          }
+        ],
+        panCard: {
+          number: 'FGHIJ5678K',
+          verificationStatus: 'pending' as const
+        },
+        aadhaarCard: {
+          number: '987654321098',
+          verificationStatus: 'pending' as const
+        }
+      },
+      {
+        firstName: 'Rajesh',
+        middleName: 'Kumar',
+        lastName: 'Sharma',
+        address: {
+          addressLine1: '789 Residential Colony',
+          addressLine2: 'Block C',
+          addressLine3: 'House 25',
+          state: 'West Bengal',
+          district: 'Kolkata',
+          pincode: '700011',
+          country: 'India'
+        },
+        kycNumber: 'KYC202400003',
+        email: 'rajesh.sharma@test.com',
+        phoneNumbers: [
+          {
+            id: '1',
+            countryCode: '+91',
+            number: '7654321098',
+            type: 'primary' as const,
+            isVerified: false
+          }
+        ],
+        panCard: {
+          number: 'LMNOP9012Q',
+          verificationStatus: 'pending' as const
+        },
+        aadhaarCard: {
+          number: '555555555555',
+          verificationStatus: 'pending' as const
+        }
+      }
+    ];
+
+    // Randomly select one of the test data sets
+    const randomIndex = Math.floor(Math.random() * testDataSets.length);
+    const selectedTestData = testDataSets[randomIndex];
+
+    const testData: ClientFormData = {
+      ...selectedTestData,
+      otherDocuments: [],
+      linkedClients: [],
+      status: 'invite_now',
+      accountBalance: 0,
+      linkedClientId: '',
+      linkedClientName: '',
+      linkedClientRelationship: ''
+    };
+
+    setFormData(testData);
+    
+    // Clear any existing errors
+    setErrors({});
+    
+    // Show success message with a brief flash effect
+    const button = document.querySelector('.quick-fill-btn') as HTMLButtonElement;
+    if (button) {
+      button.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+      button.style.transform = 'scale(1.05)';
+      setTimeout(() => {
+        button.style.transform = 'scale(1)';
+      }, 200);
+    }
+    
+    // Show success message
+    console.log(`Form populated with test data for ${testData.firstName} ${testData.lastName}`);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -1083,7 +1229,19 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
       <div className="client-form-modal">
         <div className="client-form-header">
           <h2>{mode === 'add' ? 'Add New Client' : 'Edit Client'}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <div className="header-actions">
+            {mode === 'add' && (
+              <button 
+                type="button" 
+                className="quick-fill-btn" 
+                onClick={handleQuickFill}
+                title="Quick fill with test client data"
+              >
+                ⚡ Quick Fill
+              </button>
+            )}
+            <button className="close-btn" onClick={onClose}>×</button>
+          </div>
         </div>
 
         <div className="form-steps">

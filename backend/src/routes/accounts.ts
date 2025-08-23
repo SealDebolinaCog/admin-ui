@@ -97,7 +97,7 @@ router.post('/', (req, res) => {
     const accountData: Omit<Account, 'id' | 'createdAt' | 'updatedAt'> = req.body;
     
     // Validate required fields
-    if (!accountData.accountNumber || !accountData.accountHolderNames || !accountData.institutionType || !accountData.accountType || !accountData.institutionName) {
+    if (!accountData.accountNumber || !accountData.institutionId || !accountData.accountType) {
       return res.status(400).json({
         success: false,
         error: 'Account number, holder names, institution type, account type, and institution name are required'

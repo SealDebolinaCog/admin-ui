@@ -4,12 +4,8 @@ export interface Account {
   id?: number;
   accountNumber: string;
   accountOwnershipType: 'single' | 'joint';
-  accountHolderNames: string[]; // Will be stored as JSON string in DB
-  institutionType: 'bank' | 'post_office';
   accountType: string;
-  institutionName: string;
-  branchCode?: string;
-  ifscCode?: string;
+  institutionId: number;
   tenure: number; // in months
   status: 'active' | 'suspended' | 'fined' | 'matured' | 'closed';
   startDate?: string;
@@ -141,22 +137,17 @@ export class AccountRepository {
   create(account: Omit<Account, 'id' | 'createdAt' | 'updatedAt' | 'deletionStatus'>): Account {
     const stmt = this.db.prepare(`
       INSERT INTO accounts (
-        accountNumber, accountOwnershipType, accountHolderNames, institutionType,
-        accountType, institutionName, branchCode, ifscCode, tenure, status,
-        startDate, maturityDate, paymentType, amount, lastPaymentDate,
-        nomineeName, nomineeRelation, deletionStatus
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        accountNumber, accountOwnershipType, accountType, institutionId, 
+        tenure, status, startDate, maturityDate, paymentType, amount, 
+        lastPaymentDate, nomineeName, nomineeRelation
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-
+    
     const result = stmt.run(
       account.accountNumber,
       account.accountOwnershipType,
-      JSON.stringify(account.accountHolderNames),
-      account.institutionType,
       account.accountType,
-      account.institutionName,
-      account.branchCode || null,
-      account.ifscCode || null,
+      account.institutionId,
       account.tenure,
       account.status,
       account.startDate || null,
@@ -168,7 +159,7 @@ export class AccountRepository {
       account.nomineeRelation || null
     );
 
-    return { ...account, id: result.lastInsertRowid as number, deletionStatus: false };
+    return this.getById(result.lastInsertRowid as number)!;
   }
 
   // Update existing account

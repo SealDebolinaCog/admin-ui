@@ -28,7 +28,6 @@ const AccountsManagement: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [searchFilter, setSearchFilter] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   
@@ -444,22 +443,6 @@ const AccountsManagement: React.FC = () => {
           <p>Manage bank and post office accounts</p>
         </div>
         <div className="header-actions">
-          <div className="view-toggle">
-            <button 
-              className={`toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
-              onClick={() => setViewMode('cards')}
-              title="Card View"
-            >
-              📋
-            </button>
-            <button 
-              className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
-              onClick={() => setViewMode('table')}
-              title="Table View"
-            >
-              📊
-            </button>
-          </div>
           <form 
             className="search-input-container"
             onSubmit={(e) => {
@@ -908,85 +891,18 @@ const AccountsManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Account Display */}
-      {viewMode === 'cards' ? (
-        <div className="users-grid">
-          {(currentAccounts.length > 0 ? currentAccounts : accounts).map((account: Account) => (
-            <div key={account.id} className="user-card">
-              <div className="user-avatar">
-                <span className="avatar-initials">
-                  {getAccountInitials(account.accountHolderNames[0])}
-                </span>
-              </div>
-              <div className="user-main-info">
-                <div className="user-header">
-                  <h3 className="full-name">
-                    {account.accountOwnershipType === 'single' 
-                      ? account.accountHolderNames[0] 
-                      : `${account.accountHolderNames[0]} & ${account.accountHolderNames.length - 1} more`}
-                  </h3>
-                  <span className={`status-badge ${account.status}`}>
-                    {account.status === 'active' ? '🟢' : 
-                     account.status === 'suspended' ? '🟠' : 
-                     account.status === 'fined' ? '💰' : 
-                     account.status === 'matured' ? '🎯' : 
-                     '🔴'} {getStatusDisplay(account.status)}
-                  </span>
-                </div>
-                <div className="user-details">
-                  <div className="detail-row">
-                    <span className="detail-label">Account:</span>
-                    <span className="detail-value">{account.accountNumber}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Type:</span>
-                    <span className="detail-value">{getAccountTypeDisplay(account.accountType)}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Institution:</span>
-                    <span className="detail-value">
-                      {account.institutionType === 'bank' ? '🏦' : '📮'} {account.institutionName}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Tenure:</span>
-                    <span className="detail-value">{account.tenure} months</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="user-actions">
-                <button 
-                  className="action-btn view-btn"
-                  title="View account details"
-                  onClick={() => viewAccount(account)}
-                >
-                  👁️
-                </button>
-                <button 
-                  className="action-btn edit-btn"
-                  title="Edit account"
-                  onClick={() => editAccount(account)}
-                >
-                  ✏️
-                </button>
-                <button 
-                  className="action-btn suspend-btn"
-                  title={account.status === 'active' ? 'Suspend account' : 'Activate account'}
-                  onClick={() => toggleAccountStatus(account.id)}
-                >
-                  {account.status === 'active' ? '⏸️' : '▶️'}
-                </button>
-                <button 
-                  className="action-btn delete-btn"
-                  onClick={() => deleteAccount(account.id)}
-                  title="Delete account"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-          ))}
+      {/* Content */}
+      {accounts.length === 0 && !loading ? (
+        <div className="empty-state">
+          <div className="empty-icon">🏦</div>
+          <h3>No accounts found</h3>
+          <p>Get started by adding your first account</p>
+          <button 
+            className="add-first-user-btn"
+            onClick={() => setShowAddForm(true)}
+          >
+            Add First Account
+          </button>
         </div>
       ) : (
         <div className="users-table-container">
@@ -997,7 +913,7 @@ const AccountsManagement: React.FC = () => {
                 <th>Holder</th>
                 <th>Type</th>
                 <th>Institution</th>
-                <th>Tenure</th>
+                <th>Balance</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -1005,78 +921,41 @@ const AccountsManagement: React.FC = () => {
             <tbody>
               {(currentAccounts.length > 0 ? currentAccounts : accounts).map((account: Account) => (
                 <tr key={account.id} className="user-row">
-                  <td className="client-info">
-                    <div className="client-avatar">
-                                          <span className="table-avatar-initials">
-                      {getAccountInitials(account.accountHolderNames[0])}
-                    </span>
+                  <td className="account-info">
+                    <div className="user-avatar">
+                      {account.institutionType === 'bank' ? '🏦' : '📮'}
                     </div>
-                    <div className="client-name">
-                      {account.accountNumber}
-                    </div>
-                  </td>
-                  <td className="address-cell">
-                    <div className="cell-content">
-                      {account.accountOwnershipType === 'single' 
-                        ? account.accountHolderNames[0] 
-                        : `${account.accountHolderNames[0]} & ${account.accountHolderNames.length - 1} more`}
+                    <div className="user-details">
+                      <div className="user-name">{account.accountNumber}</div>
+                      <div className="user-id">ID: {account.id}</div>
                     </div>
                   </td>
-                  <td className="mobile-cell">
-                    <div className="cell-content">
-                      {getAccountTypeDisplay(account.accountType)}
-                    </div>
+                  <td>
+                    {account.accountOwnershipType === 'single' 
+                      ? account.accountHolderNames[0] 
+                      : `${account.accountHolderNames[0]} & ${account.accountHolderNames.length - 1} more`}
                   </td>
-                  <td className="address-cell">
-                    <div className="cell-content">
-                      {account.institutionType === 'bank' ? '🏦' : '📮'} {account.institutionName}
-                    </div>
-                  </td>
-                  <td className="mobile-cell">
-                    <div className="cell-content">
-                      {account.tenure} months
-                    </div>
-                  </td>
-                  <td className="status-cell">
-                    <span className={`table-status-badge ${account.status || 'active'}`}>
-                      {account.status === 'active' ? '🟢' : 
-                       account.status === 'suspended' ? '🟠' : 
-                       account.status === 'fined' ? '💰' : 
-                       account.status === 'matured' ? '🎯' : 
-                       '🔴'} {getStatusDisplay(account.status || 'active')}
+                  <td>{getAccountTypeDisplay(account.accountType)}</td>
+                  <td>{account.institutionName || 'Not specified'}</td>
+                  <td>₹0</td>
+                  <td>
+                    <span className={`status-badge ${account.status?.toLowerCase()}`}>
+                      {getStatusDisplay(account.status)}
                     </span>
                   </td>
-                  <td className="actions-cell">
-                    <div className="table-actions">
-                      <button 
-                        className="table-action-btn view-btn"
-                        title="View account details"
-                        onClick={() => viewAccount(account)}
-                      >
-                        👁️
-                      </button>
-                      <button 
-                        className="table-action-btn edit-btn"
-                        title="Edit account"
-                        onClick={() => editAccount(account)}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="table-action-btn suspend-btn"
-                        title={account.status === 'active' ? 'Suspend account' : 'Activate account'}
-                        onClick={() => toggleAccountStatus(account.id)}
-                      >
-                        {account.status === 'active' ? '⏸️' : '▶️'}
-                      </button>
-                      <button 
-                        className="table-action-btn delete-btn"
-                        onClick={() => deleteAccount(account.id)}
-                        title="Delete account"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                  <td className="actions">
+                    <button onClick={() => viewAccount(account)} className="view-btn" title="View Details">
+                      👁️
+                    </button>
+                    <button onClick={() => editAccount(account)} className="edit-btn" title="Edit Account">
+                      ✏️
+                    </button>
+                    <button onClick={() => toggleAccountStatus(account.id)} className="toggle-btn" title="Toggle Status">
+                      {account.status === 'active' ? '⏸️' : '▶️'}
+                    </button>
+                    <button onClick={() => deleteAccount(account.id)} className="delete-btn" title="Delete Account">
+                      🗑️
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -1115,20 +994,6 @@ const AccountsManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Empty state */}
-      {accounts.length === 0 && !loading && (
-        <div className="empty-state">
-          <div className="empty-icon">🏦</div>
-          <h3>No accounts found</h3>
-          <p>Get started by adding your first account</p>
-          <button 
-            className="add-first-user-btn"
-            onClick={() => setShowAddForm(true)}
-          >
-            Add First Account
-          </button>
-        </div>
-      )}
     </div>
   );
 };

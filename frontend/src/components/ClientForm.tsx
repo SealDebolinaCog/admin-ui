@@ -54,6 +54,7 @@ interface LinkedClient {
 
 interface ClientFormData {
   // Full name
+  title?: string;
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -160,8 +161,24 @@ const CLIENT_STATUSES = [
   { value: 'deleted', label: 'Deleted' }
 ];
 
+const TITLE_OPTIONS = [
+  { value: '', label: 'Select Title' },
+  { value: 'Mr', label: 'Mr.' },
+  { value: 'Mrs', label: 'Mrs.' },
+  { value: 'Ms', label: 'Ms.' },
+  { value: 'Dr', label: 'Dr.' },
+  { value: 'Prof', label: 'Prof.' },
+  { value: 'Er', label: 'Er.' },
+  { value: 'Adv', label: 'Adv.' },
+  { value: 'CA', label: 'CA' },
+  { value: 'Shri', label: 'Shri' },
+  { value: 'Smt', label: 'Smt.' },
+  { value: 'Kumari', label: 'Kumari' }
+];
+
 const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, initialData, mode }) => {
   const [formData, setFormData] = useState<ClientFormData>({
+    title: '',
     firstName: '',
     middleName: '',
     lastName: '',
@@ -1265,80 +1282,93 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
             <div className="form-step">
               <h3>Personal Information</h3>
               
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="firstName">First Name *</label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    value={formData.firstName}
-                    onChange={(e) => handleFirstNameChange(e.target.value)}
-                    className={errors.firstName ? 'error' : ''}
-                  />
-                  {errors.firstName && <span className="error-text">{errors.firstName}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="middleName">Middle Name</label>
-                  <input
-                    type="text"
-                    id="middleName"
-                    value={formData.middleName || ''}
-                    onChange={(e) => handleInputChange('middleName', e.target.value)}
-                    className={errors.middleName ? 'error' : ''}
-                  />
-                  {errors.middleName && <span className="error-text">{errors.middleName}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="lastName">Last Name *</label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    value={formData.lastName}
-                    onChange={(e) => handleLastNameChange(e.target.value)}
-                    className={errors.lastName ? 'error' : ''}
-                  />
-                  {errors.lastName && <span className="error-text">{errors.lastName}</span>}
-                </div>
+              <div className="form-group">
+                <label htmlFor="title">Title</label>
+                <select
+                  id="title"
+                  value={formData.title || ''}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  className={errors.title ? 'error' : ''}
+                >
+                  {TITLE_OPTIONS.map(title => (
+                    <option key={title.value} value={title.value}>
+                      {title.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.title && <span className="error-text">{errors.title}</span>}
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="kycNumber">KYC/CIF Number *</label>
-                  <input
-                    type="text"
-                    id="kycNumber"
-                    value={formData.kycNumber}
-                    onChange={(e) => handleKYCChange(e.target.value)}
-                    className={errors.kycNumber ? 'error' : ''}
-                    placeholder="KYC202400001"
-                    maxLength={20}
-                    style={{
-                      textTransform: 'uppercase'
-                    }}
-                  />
-                  {errors.kycNumber && <span className="error-text">{errors.kycNumber}</span>}
-                </div>
-
-                {/* Status field only visible when editing existing clients */}
-                {mode === 'edit' && (
-                  <div className="form-group">
-                    <label htmlFor="status">Status *</label>
-                    <select
-                      id="status"
-                      value={formData.status}
-                      onChange={(e) => handleInputChange('status', e.target.value)}
-                    >
-                      {CLIENT_STATUSES.map(status => (
-                        <option key={status.value} value={status.value}>
-                          {status.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+              <div className="form-group">
+                <label htmlFor="firstName">First Name *</label>
+                <input
+                  type="text"
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleFirstNameChange(e.target.value)}
+                  className={errors.firstName ? 'error' : ''}
+                />
+                {errors.firstName && <span className="error-text">{errors.firstName}</span>}
               </div>
+
+              <div className="form-group">
+                <label htmlFor="middleName">Middle Name</label>
+                <input
+                  type="text"
+                  id="middleName"
+                  value={formData.middleName || ''}
+                  onChange={(e) => handleInputChange('middleName', e.target.value)}
+                  className={errors.middleName ? 'error' : ''}
+                />
+                {errors.middleName && <span className="error-text">{errors.middleName}</span>}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="lastName">Last Name *</label>
+                <input
+                  type="text"
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleLastNameChange(e.target.value)}
+                  className={errors.lastName ? 'error' : ''}
+                />
+                {errors.lastName && <span className="error-text">{errors.lastName}</span>}
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="kycNumber">KYC/CIF Number *</label>
+                <input
+                  type="text"
+                  id="kycNumber"
+                  value={formData.kycNumber}
+                  onChange={(e) => handleKYCChange(e.target.value)}
+                  className={errors.kycNumber ? 'error' : ''}
+                  placeholder="KYC202400001"
+                  maxLength={20}
+                  style={{
+                    textTransform: 'uppercase'
+                  }}
+                />
+                {errors.kycNumber && <span className="error-text">{errors.kycNumber}</span>}
+              </div>
+
+              {/* Status field only visible when editing existing clients */}
+              {mode === 'edit' && (
+                <div className="form-group">
+                  <label htmlFor="status">Status *</label>
+                  <select
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                  >
+                    {CLIENT_STATUSES.map(status => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 

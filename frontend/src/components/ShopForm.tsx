@@ -891,10 +891,12 @@ const ShopForm: React.FC<ShopFormProps> = ({ isOpen, onClose, onSubmit, initialD
             <span className="step-number">1</span>
             <span className="step-label">Shop Details</span>
             {currentStep === 1 && <span className="step-indicator">●</span>}
+            {currentStep === 1 && <span className="step-indicator">●</span>}
           </div>
           <div className={`progress-step ${currentStep >= 2 ? 'active' : ''}`}>
             <span className="step-number">2</span>
             <span className="step-label">Owner Info</span>
+            {currentStep === 2 && <span className="step-indicator">●</span>}
             {currentStep === 2 && <span className="step-indicator">●</span>}
           </div>
           <div className={`progress-step ${currentStep >= 3 ? 'active' : ''}`}>

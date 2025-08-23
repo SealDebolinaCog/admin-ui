@@ -1,3 +1,6 @@
+// Database connection module
+// Schema follows Enhanced_ER_Model.md
+
 import Database from 'better-sqlite3';
 import path from 'path';
 
@@ -7,149 +10,147 @@ const DB_PATH = path.join(__dirname, '../../data/admin_ui.db');
 // Create database instance
 const db = new Database(DB_PATH);
 
-// Enable foreign keys
+// Enable foreign keys and WAL mode for better performance
 db.pragma('foreign_keys = ON');
+db.pragma('journal_mode = WAL');
 
-// Initialize database tables
+// Initialize fresh database with enhanced schema
 export function initializeDatabase() {
-  console.log('Initializing database...');
+  console.log('Initializing fresh enhanced database schema...');
   
-  // Create clients table
+  // Drop existing tables to start fresh
+  console.log('Dropping existing tables...');
+  db.exec(`DROP TABLE IF EXISTS documents`);
+  db.exec(`DROP TABLE IF EXISTS profile_pictures`);
+  db.exec(`DROP TABLE IF EXISTS audit_log`);
+  db.exec(`DROP TABLE IF EXISTS transactions`);
+  db.exec(`DROP TABLE IF EXISTS account_holders`);
+  db.exec(`DROP TABLE IF EXISTS shop_clients`);
+  db.exec(`DROP TABLE IF EXISTS accounts`);
+  db.exec(`DROP TABLE IF EXISTS shops`);
+  db.exec(`DROP TABLE IF EXISTS clients`);
+  db.exec(`DROP TABLE IF EXISTS institutions`);
+  db.exec(`DROP TABLE IF EXISTS addresses`);
+  
+  console.log('Creating new enhanced schema...');
+  
+  // Create ADDRESSES table (normalized address storage)
   db.exec(`
-    CREATE TABLE IF NOT EXISTS clients (
+    CREATE TABLE addresses (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      addressLine1 TEXT NOT NULL,
+      addressLine2 TEXT,
+      addressLine3 TEXT,
+      state TEXT,
+      district TEXT,
+      pincode TEXT,
+      country TEXT DEFAULT 'India',
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create INSTITUTIONS table (banks and post offices)
+  db.exec(`
+    CREATE TABLE institutions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      institutionName TEXT NOT NULL,
+      institutionType TEXT NOT NULL CHECK (institutionType IN ('bank', 'post_office')),
+      branchCode TEXT,
+      ifscCode TEXT,
+      addressId INTEGER,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (addressId) REFERENCES addresses(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create enhanced CLIENTS table with foreign keys
+  db.exec(`
+    CREATE TABLE clients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
       firstName TEXT NOT NULL,
+      middleName TEXT,
       lastName TEXT NOT NULL,
       email TEXT UNIQUE,
       phone TEXT,
       kycNumber TEXT,
       panNumber TEXT,
       aadhaarNumber TEXT,
-      addressLine1 TEXT,
-      addressLine2 TEXT,
-      addressLine3 TEXT,
-      state TEXT,
-      district TEXT,
-      pincode TEXT,
-      country TEXT DEFAULT 'India',
+      addressId INTEGER,
       status TEXT DEFAULT 'active' CHECK (status IN ('invite_now', 'pending', 'active', 'suspended', 'deleted')),
-      linkedClientId TEXT,
-      linkedClientName TEXT,
+      linkedClientId INTEGER,
       linkedClientRelationship TEXT,
       deletionStatus BOOLEAN DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (addressId) REFERENCES addresses(id) ON DELETE SET NULL,
+      FOREIGN KEY (linkedClientId) REFERENCES clients(id) ON DELETE SET NULL
     )
   `);
 
-  // Migrate existing database - remove nominee columns if they exist and add DeletionStatus
-  try {
-    // Check if old columns exist
-    const tableInfo = db.prepare("PRAGMA table_info(clients)").all();
-    const hasNomineeName = tableInfo.some((col: any) => col.name === 'nomineeName');
-    const hasNomineeRelation = tableInfo.some((col: any) => col.name === 'nomineeRelation');
-    const hasDeletionStatus = tableInfo.some((col: any) => col.name === 'deletionStatus');
-    
-    if (hasNomineeName || hasNomineeRelation || !hasDeletionStatus) {
-      console.log('Migrating clients table schema...');
-      
-      // Create new table with correct schema
-      db.exec(`
-        CREATE TABLE clients_new (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          firstName TEXT NOT NULL,
-          lastName TEXT NOT NULL,
-          email TEXT UNIQUE,
-          phone TEXT,
-          kycNumber TEXT,
-          panNumber TEXT,
-          aadhaarNumber TEXT,
-          addressLine1 TEXT,
-          addressLine2 TEXT,
-          addressLine3 TEXT,
-          state TEXT,
-          district TEXT,
-          pincode TEXT,
-          country TEXT DEFAULT 'India',
-          status TEXT DEFAULT 'active' CHECK (status IN ('invite_now', 'pending', 'active', 'suspended', 'deleted')),
-          linkedClientId TEXT,
-          linkedClientName TEXT,
-          linkedClientRelationship TEXT,
-          deletionStatus BOOLEAN DEFAULT 0,
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-      
-      // Copy data from old table to new table
-      db.exec(`
-        INSERT INTO clients_new (
-          id, firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
-          addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt,
-          linkedClientId, linkedClientName, linkedClientRelationship, deletionStatus
-        )
-        SELECT 
-          id, firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
-          addressLine1, addressLine2, addressLine3, state, district, pincode, country, status, createdAt, updatedAt,
-          linkedClientId, linkedClientName, linkedClientRelationship, 0
-        FROM clients
-      `);
-      
-      // Drop old table and rename new table
-      db.exec('DROP TABLE clients');
-      db.exec('ALTER TABLE clients_new RENAME TO clients');
-      
-      console.log('Clients table migration completed successfully');
-    } else {
-      console.log('Clients table schema is already up to date');
-    }
-  } catch (error) {
-    console.log('Clients table migration not needed or failed:', error);
-  }
-
-  // Create shops table
+  // Create enhanced SHOPS table with foreign keys
   db.exec(`
-    CREATE TABLE IF NOT EXISTS shops (
+    CREATE TABLE shops (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       shopName TEXT NOT NULL,
       shopType TEXT,
       category TEXT,
       status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended', 'inactive')),
-      ownerName TEXT NOT NULL,
+      ownerId INTEGER NOT NULL,
+      addressId INTEGER,
       ownerEmail TEXT,
       ownerPhone TEXT,
-      addressLine1 TEXT,
-      addressLine2 TEXT,
-      addressLine3 TEXT,
-      state TEXT,
-      district TEXT,
-      pincode TEXT,
-      country TEXT DEFAULT 'India',
       deletionStatus BOOLEAN DEFAULT 0,
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (ownerId) REFERENCES clients(id) ON DELETE RESTRICT,
+      FOREIGN KEY (addressId) REFERENCES addresses(id) ON DELETE SET NULL
     )
   `);
 
-  // Migrate shops table if DeletionStatus column doesn't exist
-  try {
-    const shopsTableInfo = db.prepare("PRAGMA table_info(shops)").all();
-    const hasDeletionStatus = shopsTableInfo.some((col: any) => col.name === 'deletionStatus');
-    
-    if (!hasDeletionStatus) {
-      console.log('Adding DeletionStatus column to shops table...');
-      db.exec('ALTER TABLE shops ADD COLUMN deletionStatus BOOLEAN DEFAULT 0');
-      console.log('Shops table migration completed successfully');
-    } else {
-      console.log('Shops table schema is already up to date');
-    }
-  } catch (error) {
-    console.log('Shops table migration not needed or failed:', error);
-  }
-
-  // Create shop_clients junction table for many-to-many relationship
+  // Create enhanced ACCOUNTS table with foreign keys
   db.exec(`
-    CREATE TABLE IF NOT EXISTS shop_clients (
+    CREATE TABLE accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      accountNumber TEXT UNIQUE NOT NULL,
+      accountOwnershipType TEXT DEFAULT 'joint' CHECK (accountOwnershipType IN ('single', 'joint')),
+      accountType TEXT NOT NULL,
+      institutionId INTEGER NOT NULL,
+      tenure INTEGER DEFAULT 12,
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'fined', 'matured', 'closed')),
+      startDate DATE,
+      maturityDate DATE,
+      paymentType TEXT DEFAULT 'monthly' CHECK (paymentType IN ('monthly', 'annually', 'one_time')),
+      amount DECIMAL(15,2) DEFAULT 0,
+      lastPaymentDate DATE,
+      nomineeName TEXT,
+      nomineeRelation TEXT,
+      deletionStatus BOOLEAN DEFAULT 0,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (institutionId) REFERENCES institutions(id) ON DELETE RESTRICT
+    )
+  `);
+
+  // Create ACCOUNT_HOLDERS junction table (many-to-many: accounts <-> clients)
+  db.exec(`
+    CREATE TABLE account_holders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      accountId INTEGER NOT NULL,
+      clientId INTEGER NOT NULL,
+      holderType TEXT DEFAULT 'primary' CHECK (holderType IN ('primary', 'secondary', 'nominee')),
+      addedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (accountId) REFERENCES accounts(id) ON DELETE CASCADE,
+      FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE,
+      UNIQUE(accountId, clientId, holderType)
+    )
+  `);
+
+  // Create SHOP_CLIENTS junction table (many-to-many: shops <-> clients)
+  db.exec(`
+    CREATE TABLE shop_clients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       shopId INTEGER NOT NULL,
       clientId INTEGER NOT NULL,
@@ -160,78 +161,145 @@ export function initializeDatabase() {
     )
   `);
 
-  // Migrate shops table if shop_clients table doesn't exist
-  try {
-    const shopClientsTableInfo = db.prepare("PRAGMA table_info(shop_clients)").all();
-    if (shopClientsTableInfo.length === 0) {
-      console.log('Creating shop_clients junction table...');
-      // Table will be created by the CREATE TABLE IF NOT EXISTS above
-      console.log('Shop clients junction table created successfully');
-    } else {
-      console.log('Shop clients junction table already exists');
-    }
-  } catch (error) {
-    console.log('Shop clients table creation check failed:', error);
-  }
-
-  // Create accounts table
+  // Create TRANSACTIONS table (financial transaction history)
   db.exec(`
-    CREATE TABLE IF NOT EXISTS accounts (
+    CREATE TABLE transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      accountNumber TEXT UNIQUE NOT NULL,
-      accountOwnershipType TEXT DEFAULT 'joint' CHECK (accountOwnershipType IN ('single', 'joint')),
-      accountHolderNames TEXT NOT NULL, -- JSON array of names
-      institutionType TEXT DEFAULT 'post_office' CHECK (institutionType IN ('bank', 'post_office')),
-      accountType TEXT NOT NULL,
-      institutionName TEXT NOT NULL,
-      branchCode TEXT,
-      ifscCode TEXT,
-      tenure INTEGER DEFAULT 12, -- in months
-      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'suspended', 'fined', 'matured', 'closed')),
-      startDate TEXT,
-      maturityDate TEXT,
-      paymentType TEXT DEFAULT 'monthly' CHECK (paymentType IN ('monthly', 'annually', 'one_time')),
-      amount REAL DEFAULT 0,
-      lastPaymentDate TEXT,
-      nomineeName TEXT,
-      nomineeRelation TEXT,
-      deletionStatus BOOLEAN DEFAULT 0,
+      accountId INTEGER NOT NULL,
+      transactionType TEXT NOT NULL CHECK (transactionType IN ('deposit', 'withdrawal', 'interest', 'penalty', 'maturity')),
+      amount DECIMAL(15,2) NOT NULL,
+      transactionDate DATE NOT NULL,
+      description TEXT,
+      referenceNumber TEXT,
+      status TEXT DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (accountId) REFERENCES accounts(id) ON DELETE CASCADE
     )
   `);
 
-  // Migrate accounts table if DeletionStatus column doesn't exist
-  try {
-    const accountsTableInfo = db.prepare("PRAGMA table_info(accounts)").all();
-    const hasDeletionStatus = accountsTableInfo.some((col: any) => col.name === 'deletionStatus');
-    
-    if (!hasDeletionStatus) {
-      console.log('Adding DeletionStatus column to accounts table...');
-      db.exec('ALTER TABLE accounts ADD COLUMN deletionStatus BOOLEAN DEFAULT 0');
-      console.log('Accounts table migration completed successfully');
-    } else {
-      console.log('Accounts table schema is already up to date');
-    }
-  } catch (error) {
-    console.log('Accounts table migration not needed or failed:', error);
-  }
-
-  // Create indexes for better performance
+  // Create AUDIT_LOG table (system-wide audit trail)
   db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
-    CREATE INDEX IF NOT EXISTS idx_clients_name ON clients(firstName, lastName);
-    CREATE INDEX IF NOT EXISTS idx_clients_deletion ON clients(deletionStatus);
-    CREATE INDEX IF NOT EXISTS idx_shops_status ON shops(status);
-    CREATE INDEX IF NOT EXISTS idx_shops_name ON shops(shopName);
-    CREATE INDEX IF NOT EXISTS idx_shops_deletion ON shops(deletionStatus);
-    CREATE INDEX IF NOT EXISTS idx_accounts_status ON accounts(status);
-    CREATE INDEX IF NOT EXISTS idx_accounts_number ON accounts(accountNumber);
-    CREATE INDEX IF NOT EXISTS idx_accounts_institution ON accounts(institutionType, institutionName);
-    CREATE INDEX IF NOT EXISTS idx_accounts_deletion ON accounts(deletionStatus);
+    CREATE TABLE audit_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tableName TEXT NOT NULL,
+      recordId INTEGER NOT NULL,
+      operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE', 'RESTORE')),
+      oldValues TEXT, -- JSON string
+      newValues TEXT, -- JSON string
+      userId TEXT,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
   `);
 
-  console.log('Database initialized successfully!');
+  // Create PROFILE_PICTURES table for storing images linked to entities
+  db.exec(`
+    CREATE TABLE profile_pictures (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      entityType TEXT NOT NULL CHECK (entityType IN ('client', 'shop', 'account')),
+      entityId INTEGER NOT NULL,
+      imageType TEXT NOT NULL CHECK (imageType IN ('profile', 'outlet', 'front_page')),
+      fileName TEXT NOT NULL,
+      filePath TEXT NOT NULL,
+      fileSize INTEGER NOT NULL,
+      mimeType TEXT NOT NULL,
+      uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      isActive INTEGER DEFAULT 1 CHECK (isActive IN (0, 1)),
+      UNIQUE(entityType, entityId, imageType, isActive) -- Only one active image per type per entity
+    )
+  `);
+
+  // Create DOCUMENTS table for storing client and account documents
+  db.exec(`
+    CREATE TABLE documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      entityType TEXT NOT NULL CHECK (entityType IN ('client', 'account')),
+      entityId INTEGER NOT NULL,
+      documentType TEXT NOT NULL CHECK (documentType IN ('pan_card', 'aadhar_card', 'passport', 'driving_license', 'voter_id', 'passbook_page', 'statement', 'cheque_leaf', 'fd_receipt', 'loan_document')),
+      documentNumber TEXT,
+      fileName TEXT NOT NULL,
+      filePath TEXT NOT NULL,
+      fileSize INTEGER NOT NULL,
+      mimeType TEXT NOT NULL,
+      uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expiryDate DATE,
+      isVerified INTEGER DEFAULT 0 CHECK (isVerified IN (0, 1)),
+      isActive INTEGER DEFAULT 1 CHECK (isActive IN (0, 1)),
+      verifiedBy TEXT,
+      verifiedAt DATETIME,
+      notes TEXT
+    )
+  `);
+
+  createIndexes();
+
+  console.log('Fresh enhanced database schema initialized successfully!');
+}
+
+// Create performance indexes
+function createIndexes() {
+  console.log('Creating database indexes...');
+  
+  // Address indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_addresses_location ON addresses(state, district, pincode)`);
+  
+  // Institution indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_institutions_type ON institutions(institutionType)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_institutions_ifsc ON institutions(ifscCode)`);
+  
+  // Client indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_clients_name ON clients(firstName, lastName)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_clients_deletion ON clients(deletionStatus)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_clients_linked ON clients(linkedClientId)`);
+  
+  // Shop indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_shops_name ON shops(shopName)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_shops_owner ON shops(ownerId)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_shops_status ON shops(status)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_shops_deletion ON shops(deletionStatus)`);
+  
+  // Account indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_accounts_number ON accounts(accountNumber)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_accounts_institution ON accounts(institutionId)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_accounts_status ON accounts(status)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_accounts_deletion ON accounts(deletionStatus)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_accounts_dates ON accounts(startDate, maturityDate)`);
+  
+  // Junction table indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_account_holders_account ON account_holders(accountId)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_account_holders_client ON account_holders(clientId)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_shop_clients_shop ON shop_clients(shopId)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_shop_clients_client ON shop_clients(clientId)`);
+  
+  // Transaction indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_account ON transactions(accountId)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(transactionDate)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(transactionType)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status)`);
+  
+  // Audit log indexes
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_table_record ON audit_log(tableName, recordId)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_operation ON audit_log(operation)`);
+  
+  // Profile Pictures indexes
+  db.exec(`CREATE INDEX idx_profile_pictures_entity ON profile_pictures(entityType, entityId)`);
+  db.exec(`CREATE INDEX idx_profile_pictures_type ON profile_pictures(imageType)`);
+  db.exec(`CREATE INDEX idx_profile_pictures_active ON profile_pictures(isActive)`);
+
+  // Documents indexes
+  db.exec(`CREATE INDEX idx_documents_entity ON documents(entityType, entityId)`);
+  db.exec(`CREATE INDEX idx_documents_type ON documents(documentType)`);
+  db.exec(`CREATE INDEX idx_documents_number ON documents(documentNumber)`);
+  db.exec(`CREATE INDEX idx_documents_verified ON documents(isVerified)`);
+  db.exec(`CREATE INDEX idx_documents_active ON documents(isActive)`);
+  db.exec(`CREATE INDEX idx_documents_expiry ON documents(expiryDate)`);
+
+  console.log('Database indexes created successfully!');
 }
 
 // Get database instance
@@ -244,5 +312,5 @@ export function closeDatabase() {
   db.close();
 }
 
-// Initialize database when this module is imported
+// Initialize database with clean schema (no mock data)
 initializeDatabase(); 

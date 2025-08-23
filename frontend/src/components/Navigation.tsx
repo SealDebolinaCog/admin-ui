@@ -11,12 +11,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange 
 
   const navigationItems = [
     {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: '📊',
-      description: 'Overview and statistics'
-    },
-    {
       id: 'users',
       label: 'Clients',
       icon: '👥',
@@ -35,16 +29,10 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange 
       description: 'Bank account management'
     },
     {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: '📈',
-      description: 'Reports and insights'
-    },
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: '🔔',
-      description: 'Alerts and messages'
+      id: 'shop-insights',
+      label: 'Shop Insights',
+      icon: '📊',
+      description: 'Shop analytics and insights'
     }
   ];
 

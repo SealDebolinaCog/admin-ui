@@ -1,1 +1,4 @@
 node_modules
+backend/data/*
+backend/dist/*
+frontend/build/*

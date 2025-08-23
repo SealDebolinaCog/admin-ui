@@ -47,7 +47,6 @@ const ClientManagement: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [editingClientFormData, setEditingClientFormData] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [newClient, setNewClient] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [searchFilter, setSearchFilter] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -528,22 +527,6 @@ const ClientManagement: React.FC = () => {
           <p>Manage clients and their information</p>
         </div>
         <div className="header-actions">
-          <div className="view-toggle">
-            <button 
-              className={`toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
-              onClick={() => setViewMode('cards')}
-              title="Card View"
-            >
-              📋
-            </button>
-            <button 
-              className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
-              onClick={() => setViewMode('table')}
-              title="Table View"
-            >
-              📊
-            </button>
-          </div>
           <form 
             className="search-input-container"
             onSubmit={(e) => {
@@ -694,182 +677,88 @@ const ClientManagement: React.FC = () => {
       {/* Content */}
       {clients.length === 0 ? (
         <div className="empty-state">
-          <p>No clients found. Add your first client to get started!</p>
-          <button onClick={() => setShowClientForm(true)} className="add-first-client-btn">
-            ➕ Add First Client
+          <div className="empty-icon">👤</div>
+          <h3>No clients found</h3>
+          <p>Get started by adding your first client</p>
+          <button onClick={() => setShowClientForm(true)} className="add-first-user-btn">
+            Add First Client
           </button>
         </div>
       ) : (
-        <>
-          {/* Cards View */}
-          {viewMode === 'cards' && (
-            <div className="users-grid">
+        <div className="users-table-container">
+          <table className="users-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Address</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
               {clients.map(client => (
-                <div key={client.id} className="user-card">
-                  <div className="user-card-header">
+                <tr key={client.id} className="user-row">
+                  <td className="client-info">
                     <div className="user-avatar">
                       {getUserInitials(client.firstName, client.lastName)}
                     </div>
-                    <div className="user-main-info">
-                      <h3>{getFullName(client.firstName, client.lastName)}</h3>
-                      <span className={`status-badge ${client.status}`}>
-                        {getStatusDisplay(client.status)}
-                      </span>
+                    <div className="user-details">
+                      <div className="user-name">{getFullName(client.firstName, client.lastName)}</div>
+                      <div className="user-id">ID: {client.id}</div>
                     </div>
-                  </div>
-                  
-                  <div className="user-card-details">
-                    <div className="detail-row">
-                      <span className="detail-label">Email:</span>
-                      <span className="detail-value">{client.email || 'Not provided'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Phone:</span>
-                      <span className="detail-value">{client.phone || 'Not provided'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Address:</span>
-                      <span className="detail-value">{getAddressForUser(client)}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="user-card-actions">
-                    <button onClick={() => handleViewClient(client)} className="view-btn">
-                      👁️ View
+                  </td>
+                  <td>{client.email || 'Not provided'}</td>
+                  <td>{client.phone || 'Not provided'}</td>
+                  <td>{getAddressForUser(client)}</td>
+                  <td>
+                    <span className={`status-badge ${client.status}`}>
+                      {getStatusDisplay(client.status)}
+                    </span>
+                  </td>
+                  <td className="actions">
+                    <button onClick={() => handleViewClient(client)} className="view-btn" title="View Details">
+                      👁️
                     </button>
-                    <button onClick={() => handleEditClient(client)} className="edit-btn">
-                      ✏️ Edit
+                    <button onClick={() => handleEditClient(client)} className="edit-btn" title="Edit Client">
+                      ✏️
                     </button>
                     {client.status === 'active' && (
-                      <button onClick={() => handleSuspendClient(client.id)} className="suspend-btn">
-                        ⏸️ Suspend
+                      <button onClick={() => handleSuspendClient(client.id)} className="suspend-btn" title="Suspend Client">
+                        ⏸️
                       </button>
                     )}
-                    <button onClick={() => deleteClient(client.id)} className="delete-btn">
-                      🗑️ Delete
+                    <button onClick={() => deleteClient(client.id)} className="delete-btn" title="Delete Client">
+                      🗑️
                     </button>
-                  </div>
-                </div>
+                  </td>
+                </tr>
               ))}
-            </div>
-          )}
-
-          {/* Table View */}
-          {viewMode === 'table' && (
-            <div className="users-table-container">
-              <table className="users-table">
-                <thead>
-                  <tr>
-                    <th>Client</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Address</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clients.map(client => (
-                    <tr key={client.id} className="user-row">
-                      <td className="client-info">
-                        <div className="client-avatar">
-                          <span className="table-avatar-initials">
-                            {getUserInitials(client.firstName, client.lastName)}
-                          </span>
-                        </div>
-                        <div className="client-name">
-                          {getFullName(client.firstName, client.lastName)}
-                        </div>
-                      </td>
-                      <td className="mobile-cell">
-                        <div className="cell-content">
-                          {client.email || 'Not provided'}
-                        </div>
-                      </td>
-                      <td className="mobile-cell">
-                        <div className="cell-content">
-                          {client.phone || 'Not provided'}
-                        </div>
-                      </td>
-                      <td className="address-cell">
-                        <div className="cell-content">
-                          {getAddressForUser(client)}
-                        </div>
-                      </td>
-                      <td className="status-cell">
-                        <span className={`table-status-badge ${client.status}`}>
-                          {getStatusDisplay(client.status)}
-                        </span>
-                      </td>
-                      <td className="actions-cell">
-                        <div className="table-actions">
-                          <button 
-                            className="table-action-btn view-btn"
-                            title="View client details"
-                            onClick={() => handleViewClient(client)}
-                          >
-                            👁️
-                          </button>
-                          <button 
-                            className="table-action-btn edit-btn"
-                            title="Edit client"
-                            onClick={() => handleEditClient(client)}
-                          >
-                            ✏️
-                          </button>
-                          {client.status === 'active' && (
-                            <button 
-                              className="table-action-btn suspend-btn"
-                              title="Suspend client"
-                              onClick={() => handleSuspendClient(client.id)}
-                            >
-                              ⏸️
-                            </button>
-                          )}
-                          <button 
-                            className="table-action-btn delete-btn"
-                            title="Delete client"
-                            onClick={() => deleteClient(client.id)}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+            </tbody>
+          </table>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="pagination-container">
-              <div className="pagination-info">
-                Showing {pagination.startRecord} to {pagination.endRecord} of {totalRecords} clients
-              </div>
-              <div className="pagination-controls">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={!pagination.hasPrevPage}
-                  className="pagination-btn"
-                >
-                  ← Previous
-                </button>
-                <span className="page-info">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={!pagination.hasNextPage}
-                  className="pagination-btn"
-                >
-                  Next →
-                </button>
-              </div>
-            </div>
-          )}
-        </>
+          <div className="pagination">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={!pagination.hasPrevPage}
+              className="pagination-btn"
+            >
+              ← Previous
+            </button>
+            <span className="pagination-info">
+              Page {currentPage} of {totalPages} ({totalRecords} total clients)
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={!pagination.hasNextPage}
+              className="pagination-btn"
+            >
+              Next →
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Forms and Modals */}

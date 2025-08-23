@@ -1,24 +1,20 @@
 import { getDatabase } from './database';
+import Database from 'better-sqlite3';
 
 export interface Client {
   id?: number;
+  title?: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
   email?: string;
   phone?: string;
   kycNumber?: string;
   panNumber?: string;
   aadhaarNumber?: string;
-  addressLine1?: string;
-  addressLine2?: string;
-  addressLine3?: string;
-  state?: string;
-  district?: string;
-  pincode?: string;
-  country?: string;
-  status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
-  linkedClientId?: string;
-  linkedClientName?: string;
+  addressId?: number;
+  status?: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
+  linkedClientId?: number;
   linkedClientRelationship?: string;
   deletionStatus?: boolean;
   createdAt?: string;
@@ -80,39 +76,32 @@ export class ClientRepository {
     return stmt.get(id) as Client | undefined;
   }
 
-  // Create new client
+  // Create a new client
   create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'deletionStatus'>): Client {
     const stmt = this.db.prepare(`
       INSERT INTO clients (
-        firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
-        addressLine1, addressLine2, addressLine3,
-        state, district, pincode, country, status,
-        linkedClientId, linkedClientName, linkedClientRelationship, deletionStatus
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        title, firstName, middleName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
+        addressId, status, linkedClientId, linkedClientRelationship
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-
+    
     const result = stmt.run(
+      client.title || null,
       client.firstName,
+      client.middleName || null,
       client.lastName,
       client.email || null,
       client.phone || null,
       client.kycNumber || null,
       client.panNumber || null,
       client.aadhaarNumber || null,
-      client.addressLine1 || null,
-      client.addressLine2 || null,
-      client.addressLine3 || null,
-      client.state || null,
-      client.district || null,
-      client.pincode || null,
-      client.country || 'India',
-      client.status,
+      client.addressId || null,
+      client.status || 'active',
       client.linkedClientId || null,
-      client.linkedClientName || null,
       client.linkedClientRelationship || null
     );
 
-    return { ...client, id: result.lastInsertRowid as number, deletionStatus: false };
+    return this.getById(result.lastInsertRowid as number)!;
   }
 
   // Update existing client

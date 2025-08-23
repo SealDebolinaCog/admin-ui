@@ -32,7 +32,6 @@ const ShopManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { error, successMessage, setError, setSuccessMessage, clearAllMessages, clearSuccessMessage } = useMessageHandler();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [currentStep, setCurrentStep] = useState(1);
   const [shopFormData, setShopFormData] = useState({
     shopName: '',
@@ -557,22 +556,6 @@ const ShopManagement: React.FC = () => {
           <p>Manage shops and their information</p>
         </div>
         <div className="header-actions">
-          <div className="view-toggle">
-            <button 
-              className={`toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
-              onClick={() => setViewMode('cards')}
-              title="Card View"
-            >
-              📋
-            </button>
-            <button 
-              className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
-              onClick={() => setViewMode('table')}
-              title="Table View"
-            >
-              📊
-            </button>
-          </div>
           <form 
             className="search-input-container"
             onSubmit={(e) => {
@@ -1050,73 +1033,18 @@ const ShopManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Shop Display */}
-      {viewMode === 'cards' ? (
-        <div className="users-grid">
-          {shops.map((shop: Shop) => (
-            <div key={shop.id} className="user-card">
-              <div className="user-avatar">
-                <span className="avatar-initials">
-                  {getShopInitials(shop.shopName)}
-                </span>
-              </div>
-              <div className="user-main-info">
-                <div className="user-header">
-                  <h3 className="full-name">{shop.shopName}</h3>
-                  <span className={`status-badge ${shop.status || 'active'}`}>
-                    {shop.status === 'active' ? '🟢' : shop.status === 'pending' ? '🟡' : shop.status === 'suspended' ? '🟠' : '🔴'} {getStatusDisplay(shop.status || 'active')}
-                  </span>
-                </div>
-                <div className="user-details">
-                  <div className="detail-row">
-                    <span className="detail-label">Owner:</span>
-                    <span className="detail-value">{shop.ownerName}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Category:</span>
-                    <span className="detail-value">{getCategoryDisplay(shop.category)}</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Address:</span>
-                    <span className="detail-value">{shop.addressLine1}, {shop.district}, {shop.state} {shop.pincode}</span>
-                  </div>
-
-                </div>
-              </div>
-              <div className="user-actions">
-                <button 
-                  className="action-btn view-btn"
-                  title="View shop details"
-                  onClick={() => viewShop(shop)}
-                >
-                  👁️
-                </button>
-                <button 
-                  className="action-btn edit-btn"
-                  title="Edit shop"
-                  onClick={() => editShop(shop)}
-                >
-                  ✏️
-                </button>
-                <button 
-                  className="action-button toggle-status"
-                  onClick={() => toggleShopStatus(shop.id!)}
-                  title={`Cycle status (${shop.status || 'active'} -> next status)`}
-                >
-                  {shop.status === 'active' ? '⏸️' : 
-                   shop.status === 'pending' ? '⏳' :
-                   shop.status === 'suspended' ? '▶️' : '🔄'}
-                </button>
-                <button 
-                  className="action-btn delete-btn"
-                  onClick={() => deleteShop(shop.id)}
-                  title="Delete shop"
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-          ))}
+      {/* Content */}
+      {shops.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">🏪</div>
+          <h3>No shops found</h3>
+          <p>Get started by adding your first shop</p>
+          <button 
+            className="add-first-user-btn"
+            onClick={() => setShowAddForm(true)}
+          >
+            Add First Shop
+          </button>
         </div>
       ) : (
         <div className="users-table-container">
@@ -1134,76 +1062,44 @@ const ShopManagement: React.FC = () => {
             <tbody>
               {shops.map((shop: Shop) => (
                 <tr key={shop.id} className="user-row">
-                  <td className="client-info">
-                    <div className="client-avatar">
-                      <span className="table-avatar-initials">
-                        {getShopInitials(shop.shopName)}
-                      </span>
+                  <td className="shop-info">
+                    <div className="user-avatar">
+                      {getShopInitials(shop.shopName)}
                     </div>
-                    <div className="client-name">
-                      {shop.shopName}
-                    </div>
-                  </td>
-                  <td className="address-cell">
-                    <div className="cell-content">
-                      {shop.ownerName}
+                    <div className="user-details">
+                      <div className="user-name">{shop.shopName}</div>
+                      <div className="user-id">ID: {shop.id}</div>
                     </div>
                   </td>
-                  <td className="mobile-cell">
-                    <div className="cell-content">
-                      {getCategoryDisplay(shop.category)}
-                    </div>
+                  <td>{shop.ownerName || 'Not provided'}</td>
+                  <td>{getCategoryDisplay(shop.category)}</td>
+                  <td>
+                    {shop.addressLine1 ? 
+                      `${shop.addressLine1}, ${shop.district}, ${shop.state} ${shop.pincode}` : 
+                      'Not provided'
+                    }
                   </td>
-                  <td className="address-cell">
-                    <div className="cell-content">
-                      {shop.addressLine1}, {shop.district}, {shop.state} {shop.pincode}
-                    </div>
-                  </td>
-                  <td className="status-cell">
-                    <span className={`table-status-badge ${shop.status || 'active'}`}>
-                      {shop.status === 'active' ? '🟢' : shop.status === 'pending' ? '🟡' : shop.status === 'suspended' ? '🟠' : '🔴'} {getStatusDisplay(shop.status || 'active')}
+                  <td>
+                    <span className={`status-badge ${shop.status?.toLowerCase()}`}>
+                      {getStatusDisplay(shop.status || 'active')}
                     </span>
                   </td>
-                  <td className="actions-cell">
-                    <div className="table-actions">
-                      <button 
-                        className="table-action-btn view-btn"
-                        title="View shop details"
-                        onClick={() => viewShop(shop)}
-                      >
-                        👁️
-                      </button>
-                      <button 
-                        className="table-action-btn edit-btn"
-                        title="Edit shop"
-                        onClick={() => editShop(shop)}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="table-action-btn clients-btn"
-                        title="Manage clients"
-                        onClick={() => openShopClientManager(shop)}
-                      >
-                        👥
-                      </button>
-                      <button 
-                        className="table-action-btn toggle-status"
-                        title={`Cycle status (${shop.status || 'active'} -> next status)`}
-                        onClick={() => toggleShopStatus(shop.id!)}
-                      >
-                        {shop.status === 'active' ? '⏸️' : 
-                         shop.status === 'pending' ? '⏳' :
-                         shop.status === 'suspended' ? '▶️' : '🔄'}
-                      </button>
-                      <button 
-                        className="table-action-btn delete-btn"
-                        onClick={() => deleteShop(shop.id)}
-                        title="Delete shop"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+                  <td className="actions">
+                    <button onClick={() => viewShop(shop)} className="view-btn" title="View Details">
+                      👁️
+                    </button>
+                    <button onClick={() => editShop(shop)} className="edit-btn" title="Edit Shop">
+                      ✏️
+                    </button>
+                    <button onClick={() => openShopClientManager(shop)} className="clients-btn" title="Manage Clients">
+                      👥
+                    </button>
+                    <button onClick={() => toggleShopStatus(shop.id)} className="toggle-btn" title="Toggle Status">
+                      🔄
+                    </button>
+                    <button onClick={() => deleteShop(shop.id)} className="delete-btn" title="Delete Shop">
+                      🗑️
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -1212,60 +1108,15 @@ const ShopManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="pagination-container">
-          <div className="pagination-info">
-            <span>
-              Showing {((currentPage - 1) * recordsPerPage) + 1} to {Math.min(currentPage * recordsPerPage, totalRecords)} of {totalRecords} shops
-            </span>
-          </div>
-          <div className="pagination-controls">
-            <button 
-              className="pagination-btn"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-            >
-              ← Previous
-            </button>
-            <span className="pagination-current">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button 
-              className="pagination-btn"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {shops.length === 0 && !loading && (
-        <div className="empty-state">
-          <div className="empty-icon">🏪</div>
-          <h3>No shops found</h3>
-          <p>Get started by adding your first shop</p>
-          <button 
-            className="add-first-user-btn"
-            onClick={() => setShowAddForm(true)}
-          >
-            Add First Shop
-          </button>
-        </div>
-      )}
-
       {/* Success Message */}
       {successMessage && (
         <SuccessMessage message={successMessage} onClose={clearSuccessMessage} />
       )}
 
-      {/* Shop Client Manager */}
+      {/* Shop Client Manager Modal */}
       {showShopClientManager && selectedShopForClients && (
         <ShopClientManager
-          shopId={selectedShopForClients.id!}
+          shopId={selectedShopForClients.id}
           shopName={selectedShopForClients.shopName}
           isOpen={showShopClientManager}
           onClose={closeShopClientManager}

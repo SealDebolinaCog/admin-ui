@@ -20,6 +20,8 @@ export function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       addressLine1 TEXT NOT NULL,
       addressLine2 TEXT,
+      addressLine3 TEXT,
+      city TEXT,
       state TEXT NOT NULL,
       district TEXT NOT NULL,
       pincode TEXT NOT NULL,

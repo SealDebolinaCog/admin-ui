@@ -1,161 +1,99 @@
 import { getDatabase } from './database';
+import { Account } from './types';
 
-export interface Account {
-  id?: number;
-  accountNumber: string;
-  accountOwnershipType: 'single' | 'joint';
-  accountHolderNames: string[]; // Will be stored as JSON string in DB
-  institutionType: 'bank' | 'post_office';
-  accountType: string;
-  institutionName: string;
-  branchCode?: string;
-  ifscCode?: string;
-  tenure: number; // in months
-  status: 'active' | 'suspended' | 'fined' | 'matured' | 'closed';
-  startDate?: string;
-  maturityDate?: string;
-  paymentType: 'monthly' | 'annually' | 'one_time';
-  amount: number;
-  lastPaymentDate?: string;
-  nomineeName?: string;
-  nomineeRelation?: string;
-  deletionStatus?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
+export { Account };
 
 export class AccountRepository {
   private db = getDatabase();
 
   // Get all accounts with optional filtering
   getAll(filters?: {
-    status?: string;
-    search?: string;
-    institutionType?: string;
     accountType?: string;
-    paymentType?: string;
-    tenureRange?: string;
+    search?: string;
+    institutionId?: number;
     includeDeleted?: boolean;
   }): Account[] {
     let query = `
-      SELECT * FROM accounts 
+      SELECT a.*, i.institutionName, i.institutionType 
+      FROM accounts a
+      LEFT JOIN institutions i ON a.institutionId = i.id
       WHERE 1=1
     `;
     const params: any[] = [];
 
-    // Only show non-deleted records by default
+    // Only show active records by default
     if (!filters?.includeDeleted) {
-      query += ` AND deletionStatus = 0`;
-    }
-
-    if (filters?.status) {
-      query += ` AND status = ?`;
-      params.push(filters.status);
-    }
-
-    if (filters?.search) {
-      query += ` AND (accountNumber LIKE ? OR accountHolderNames LIKE ? OR institutionName LIKE ?)`;
-      const searchTerm = `%${filters.search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
-    }
-
-    if (filters?.institutionType) {
-      query += ` AND institutionType = ?`;
-      params.push(filters.institutionType);
+      query += ` AND a.deletionStatus = 'active'`;
     }
 
     if (filters?.accountType) {
-      query += ` AND accountType = ?`;
+      query += ` AND a.accountType = ?`;
       params.push(filters.accountType);
     }
 
-    if (filters?.paymentType) {
-      query += ` AND paymentType = ?`;
-      params.push(filters.paymentType);
+    if (filters?.search) {
+      query += ` AND (a.accountNumber LIKE ? OR i.institutionName LIKE ?)`;
+      const searchTerm = `%${filters.search}%`;
+      params.push(searchTerm, searchTerm);
     }
 
-    if (filters?.tenureRange) {
-      // Parse tenure range (e.g., "0-12", "12-24", "24+")
-      const [min, max] = filters.tenureRange.split('-').map(Number);
-      if (max) {
-        query += ` AND tenure BETWEEN ? AND ?`;
-        params.push(min, max);
-      } else {
-        query += ` AND tenure >= ?`;
-        params.push(min);
-      }
+    if (filters?.institutionId) {
+      query += ` AND a.institutionId = ?`;
+      params.push(filters.institutionId);
     }
 
-    query += ` ORDER BY accountHolderNames, accountNumber`;
+    query += ` ORDER BY a.accountNumber`;
 
     const stmt = this.db.prepare(query);
-    const results = stmt.all(params) as any[];
-    
-    // Parse JSON strings back to arrays
-    return results.map(account => ({
-      ...account,
-      accountHolderNames: JSON.parse(account.accountHolderNames || '[]')
-    }));
+    return stmt.all(params) as Account[];
   }
 
   // Get account by ID
   getById(id: number): Account | undefined {
-    const stmt = this.db.prepare('SELECT * FROM accounts WHERE id = ? AND deletionStatus = 0');
-    const result = stmt.get(id) as any;
-    
-    if (!result) return undefined;
-    
-    return {
-      ...result,
-      accountHolderNames: JSON.parse(result.accountHolderNames || '[]')
-    };
+    const stmt = this.db.prepare(`
+      SELECT a.*, i.institutionName, i.institutionType 
+      FROM accounts a
+      LEFT JOIN institutions i ON a.institutionId = i.id
+      WHERE a.id = ? AND a.deletionStatus = 'active'
+    `);
+    return stmt.get(id) as Account | undefined;
   }
 
   // Get account by account number
   getByAccountNumber(accountNumber: string): Account | undefined {
-    const stmt = this.db.prepare('SELECT * FROM accounts WHERE accountNumber = ? AND deletionStatus = 0');
-    const result = stmt.get(accountNumber) as any;
-    
-    if (!result) return undefined;
-    
-    return {
-      ...result,
-      accountHolderNames: JSON.parse(result.accountHolderNames || '[]')
-    };
+    const stmt = this.db.prepare(`
+      SELECT a.*, i.institutionName, i.institutionType 
+      FROM accounts a
+      LEFT JOIN institutions i ON a.institutionId = i.id
+      WHERE a.accountNumber = ? AND a.deletionStatus = 'active'
+    `);
+    return stmt.get(accountNumber) as Account | undefined;
   }
 
   // Create new account
-  create(account: Omit<Account, 'id' | 'createdAt' | 'updatedAt' | 'deletionStatus'>): Account {
+  create(account: any): Account {
     const stmt = this.db.prepare(`
       INSERT INTO accounts (
-        accountNumber, accountOwnershipType, accountHolderNames, institutionType,
-        accountType, institutionName, branchCode, ifscCode, tenure, status,
-        startDate, maturityDate, paymentType, amount, lastPaymentDate,
-        nomineeName, nomineeRelation, deletionStatus
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        accountNumber, accountType, accountOwnershipType, balance, 
+        interestRate, maturityDate, institutionId, deletionStatus
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
     `);
 
     const result = stmt.run(
       account.accountNumber,
-      account.accountOwnershipType,
-      JSON.stringify(account.accountHolderNames),
-      account.institutionType,
       account.accountType,
-      account.institutionName,
-      account.branchCode || null,
-      account.ifscCode || null,
-      account.tenure,
-      account.status,
-      account.startDate || null,
+      account.accountOwnershipType,
+      account.balance || 0,
+      account.interestRate || null,
       account.maturityDate || null,
-      account.paymentType,
-      account.amount,
-      account.lastPaymentDate || null,
-      account.nomineeName || null,
-      account.nomineeRelation || null
+      account.institutionId
     );
 
-    return { ...account, id: result.lastInsertRowid as number, deletionStatus: false };
+    return { 
+      ...account, 
+      id: result.lastInsertRowid as number, 
+      deletionStatus: 'active' 
+    };
   }
 
   // Update existing account
@@ -165,13 +103,8 @@ export class AccountRepository {
 
     Object.entries(account).forEach(([key, value]) => {
       if (value !== undefined) {
-        if (key === 'accountHolderNames') {
-          fields.push(`${key} = ?`);
-          values.push(JSON.stringify(value));
-        } else {
-          fields.push(`${key} = ?`);
-          values.push(value);
-        }
+        fields.push(`${key} = ?`);
+        values.push(value);
       }
     });
 
@@ -187,9 +120,13 @@ export class AccountRepository {
     return result.changes > 0;
   }
 
-  // Soft delete account (set deletionStatus to true)
+  // Soft delete account
   delete(id: number): boolean {
-    const stmt = this.db.prepare('UPDATE accounts SET deletionStatus = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
+    const stmt = this.db.prepare(`
+      UPDATE accounts 
+      SET deletionStatus = 'soft_deleted', updatedAt = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `);
     const result = stmt.run(id);
     return result.changes > 0;
   }
@@ -201,9 +138,13 @@ export class AccountRepository {
     return result.changes > 0;
   }
 
-  // Restore deleted account (set deletionStatus to false)
+  // Restore deleted account
   restore(id: number): boolean {
-    const stmt = this.db.prepare('UPDATE accounts SET deletionStatus = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
+    const stmt = this.db.prepare(`
+      UPDATE accounts 
+      SET deletionStatus = 'active', updatedAt = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `);
     const result = stmt.run(id);
     return result.changes > 0;
   }
@@ -212,94 +153,97 @@ export class AccountRepository {
   getCount(includeDeleted: boolean = false): number {
     let query = 'SELECT COUNT(*) as count FROM accounts';
     if (!includeDeleted) {
-      query += ' WHERE deletionStatus = 0';
+      query += ` WHERE deletionStatus = 'active'`;
     }
     const stmt = this.db.prepare(query);
     const result = stmt.get() as { count: number };
     return result.count;
   }
 
-  // Get accounts by status (excluding deleted by default)
-  getByStatus(status: string, includeDeleted: boolean = false): Account[] {
-    let query = 'SELECT * FROM accounts WHERE status = ?';
-    if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
-    }
-    query += ' ORDER BY accountHolderNames, accountNumber';
-    const stmt = this.db.prepare(query);
-    const results = stmt.all(status) as any[];
-    
-    return results.map(account => ({
-      ...account,
-      accountHolderNames: JSON.parse(account.accountHolderNames || '[]')
-    }));
-  }
-
-  // Search accounts (excluding deleted by default)
-  search(searchTerm: string, includeDeleted: boolean = false): Account[] {
+  // Get accounts by account type
+  getByAccountType(accountType: string, includeDeleted: boolean = false): Account[] {
     let query = `
-      SELECT * FROM accounts 
-      WHERE (accountNumber LIKE ? OR accountHolderNames LIKE ? OR institutionName LIKE ?)
+      SELECT a.*, i.institutionName, i.institutionType 
+      FROM accounts a
+      LEFT JOIN institutions i ON a.institutionId = i.id
+      WHERE a.accountType = ?
     `;
     if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
+      query += ` AND a.deletionStatus = 'active'`;
     }
-    query += ' ORDER BY accountHolderNames, accountNumber';
+    query += ` ORDER BY a.accountNumber`;
+    const stmt = this.db.prepare(query);
+    return stmt.all(accountType) as Account[];
+  }
+
+  // Search accounts
+  search(searchTerm: string, includeDeleted: boolean = false): Account[] {
+    let query = `
+      SELECT a.*, i.institutionName, i.institutionType 
+      FROM accounts a
+      LEFT JOIN institutions i ON a.institutionId = i.id
+      WHERE (a.accountNumber LIKE ? OR i.institutionName LIKE ?)
+    `;
+    if (!includeDeleted) {
+      query += ` AND a.deletionStatus = 'active'`;
+    }
+    query += ` ORDER BY a.accountNumber`;
     const stmt = this.db.prepare(query);
     const term = `%${searchTerm}%`;
-    const results = stmt.all(term, term, term) as any[];
-    
-    return results.map(account => ({
-      ...account,
-      accountHolderNames: JSON.parse(account.accountHolderNames || '[]')
-    }));
+    return stmt.all(term, term) as Account[];
   }
 
-  // Get accounts by institution type (excluding deleted by default)
-  getByInstitutionType(institutionType: string, includeDeleted: boolean = false): Account[] {
-    let query = 'SELECT * FROM accounts WHERE institutionType = ?';
-    if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
-    }
-    query += ' ORDER BY accountHolderNames, accountNumber';
+  // Get accounts by status
+  getByStatus(status: string): Account[] {
+    const query = `
+      SELECT 
+        a.*,
+        i.name as institutionName,
+        i.type as institutionType,
+        i.ifscCode,
+        i.branchName
+      FROM accounts a
+      LEFT JOIN institutions i ON a.institutionId = i.id
+      WHERE a.status = ? AND a.deletionStatus = 'active'
+      ORDER BY a.accountNumber
+    `;
     const stmt = this.db.prepare(query);
-    const results = stmt.all(institutionType) as any[];
-    
-    return results.map(account => ({
-      ...account,
-      accountHolderNames: JSON.parse(account.accountHolderNames || '[]')
-    }));
+    return stmt.all(status) as Account[];
   }
 
-  // Get accounts by account type (excluding deleted by default)
-  getByAccountType(accountType: string, includeDeleted: boolean = false): Account[] {
-    let query = 'SELECT * FROM accounts WHERE accountType = ?';
-    if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
-    }
-    query += ' ORDER BY accountHolderNames, accountNumber';
+  // Get accounts by institution type
+  getByInstitutionType(institutionType: string): Account[] {
+    const query = `
+      SELECT 
+        a.*,
+        i.name as institutionName,
+        i.type as institutionType,
+        i.ifscCode,
+        i.branchName
+      FROM accounts a
+      LEFT JOIN institutions i ON a.institutionId = i.id
+      WHERE i.type = ? AND a.deletionStatus = 'active'
+      ORDER BY a.accountNumber
+    `;
     const stmt = this.db.prepare(query);
-    const results = stmt.all(accountType) as any[];
-    
-    return results.map(account => ({
-      ...account,
-      accountHolderNames: JSON.parse(account.accountHolderNames || '[]')
-    }));
+    return stmt.all(institutionType) as Account[];
   }
 
-  // Get accounts by payment type (excluding deleted by default)
-  getByPaymentType(paymentType: string, includeDeleted: boolean = false): Account[] {
-    let query = 'SELECT * FROM accounts WHERE paymentType = ?';
-    if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
-    }
-    query += ' ORDER BY accountHolderNames, accountNumber';
+  // Get accounts by payment type
+  getByPaymentType(paymentType: string): Account[] {
+    const query = `
+      SELECT 
+        a.*,
+        i.name as institutionName,
+        i.type as institutionType,
+        i.ifscCode,
+        i.branchName
+      FROM accounts a
+      LEFT JOIN institutions i ON a.institutionId = i.id
+      WHERE a.paymentType = ? AND a.deletionStatus = 'active'
+      ORDER BY a.accountNumber
+    `;
     const stmt = this.db.prepare(query);
-    const results = stmt.all(paymentType) as any[];
-    
-    return results.map(account => ({
-      ...account,
-      accountHolderNames: JSON.parse(account.accountHolderNames || '[]')
-    }));
+    return stmt.all(paymentType) as Account[];
   }
 } 

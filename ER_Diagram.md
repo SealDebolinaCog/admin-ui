@@ -148,6 +148,8 @@ This document presents the complete ER diagram for the Admin UI application, whi
 │ 🔑 id                    INTEGER PRIMARY KEY AUTOINCREMENT │
 │ 🏠 addressLine1          TEXT NOT NULL                      │
 │ 🏠 addressLine2          TEXT                               │
+│ 🏠 addressLine3          TEXT                               │
+│ 🏙️ city                  TEXT                               │
 │ 🌍 state                 TEXT NOT NULL                      │
 │ 🏙️ district              TEXT NOT NULL                      │
 │ 📮 pincode               TEXT NOT NULL                      │
@@ -312,6 +314,7 @@ erDiagram
         int id PK "Auto-increment primary key"
         text addressLine1 "Primary address line"
         text addressLine2 "Secondary address line (optional)"
+        text addressLine3 "Third address line (optional)"
         text state "State/Province"
         text district "District/City"
         text pincode "Postal/ZIP code"

@@ -70,10 +70,10 @@ router.post('/', (req, res) => {
     const shopData: Omit<Shop, 'id' | 'createdAt' | 'updatedAt'> = req.body;
     
     // Validate required fields
-    if (!shopData.shopName || !shopData.ownerName) {
+    if (!shopData.shopName || !shopData.ownerId) {
       return res.status(400).json({
         success: false,
-        error: 'Shop name and owner name are required'
+        error: 'Shop name and owner ID are required'
       });
     }
 

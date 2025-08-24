@@ -24,9 +24,17 @@ export class ClientRepository {
         a.state,
         a.district,
         a.pincode,
-        a.country
+        a.country,
+        contacts_email.contactDetails as email,
+        contacts_phone.contactDetails as phone
       FROM clients c
       LEFT JOIN addresses a ON c.addressId = a.id
+      LEFT JOIN contacts contacts_email ON c.id = contacts_email.clientId 
+        AND contacts_email.type = 'email' 
+        AND contacts_email.contactPriority = 'primary'
+      LEFT JOIN contacts contacts_phone ON c.id = contacts_phone.clientId 
+        AND contacts_phone.type = 'phone' 
+        AND contacts_phone.contactPriority = 'primary'
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -60,7 +68,68 @@ export class ClientRepository {
     query += ` ORDER BY c.firstName, c.lastName`;
 
     const stmt = this.db.prepare(query);
-    return stmt.all(params) as Client[];
+    const clients = stmt.all(params) as Client[];
+    
+    // Get contacts for each client
+    if (clients.length > 0) {
+      const contactsQuery = `
+        SELECT clientId, id, type, contactPriority, contactDetails
+        FROM contacts 
+        WHERE clientId IN (${clients.map(() => '?').join(',')})
+        ORDER BY 
+          clientId,
+          CASE WHEN contactPriority = 'primary' THEN 0 ELSE 1 END,
+          type
+      `;
+      const contactsStmt = this.db.prepare(contactsQuery);
+      const allContacts = contactsStmt.all(clients.map(c => c.id));
+      
+      // Group contacts by clientId
+      const contactsByClient = allContacts.reduce((acc: any, contact: any) => {
+        if (!acc[contact.clientId]) acc[contact.clientId] = [];
+        acc[contact.clientId].push(contact);
+        return acc;
+      }, {});
+      
+      // Add contacts to each client
+      clients.forEach(client => {
+        (client as any).contacts = contactsByClient[client.id] || [];
+      });
+      
+      // Get linked client names for clients that have linkedClientId
+      const clientsWithLinks = clients.filter(c => c.linkedClientId);
+      if (clientsWithLinks.length > 0) {
+        const linkedClientIds = clientsWithLinks.map(c => c.linkedClientId);
+        const linkedClientsQuery = `
+          SELECT id, title, firstName, middleName, lastName
+          FROM clients 
+          WHERE id IN (${linkedClientIds.map(() => '?').join(',')}) AND deletionStatus = 'active'
+        `;
+        const linkedClientsStmt = this.db.prepare(linkedClientsQuery);
+        const linkedClients = linkedClientsStmt.all(linkedClientIds) as any[];
+        
+        // Create a map of linked client names
+        const linkedClientNames = linkedClients.reduce((acc: any, linkedClient: any) => {
+          const name = [
+            linkedClient.title,
+            linkedClient.firstName,
+            linkedClient.middleName,
+            linkedClient.lastName
+          ].filter(Boolean).join(' ');
+          acc[linkedClient.id] = name;
+          return acc;
+        }, {});
+        
+        // Add linked client names to clients
+        clients.forEach(client => {
+          if (client.linkedClientId && linkedClientNames[client.linkedClientId]) {
+            (client as any).linkedClientName = linkedClientNames[client.linkedClientId];
+          }
+        });
+      }
+    }
+    
+    return clients;
   }
 
   // Get client by ID
@@ -75,13 +144,97 @@ export class ClientRepository {
         a.state,
         a.district,
         a.pincode,
-        a.country
+        a.country,
+        contacts_email.contactDetails as email,
+        contacts_phone.contactDetails as phone
       FROM clients c
       LEFT JOIN addresses a ON c.addressId = a.id
+      LEFT JOIN contacts contacts_email ON c.id = contacts_email.clientId 
+        AND contacts_email.type = 'email' 
+        AND contacts_email.contactPriority = 'primary'
+      LEFT JOIN contacts contacts_phone ON c.id = contacts_phone.clientId 
+        AND contacts_phone.type = 'phone' 
+        AND contacts_phone.contactPriority = 'primary'
       WHERE c.id = ? AND c.deletionStatus = 'active'
     `;
     const stmt = this.db.prepare(query);
-    return stmt.get(id) as Client | undefined;
+    const client = stmt.get(id) as Client | undefined;
+    
+    if (client) {
+      // Get all contacts for this client
+      const contactsQuery = `
+        SELECT id, type, contactPriority, contactDetails
+        FROM contacts 
+        WHERE clientId = ?
+        ORDER BY 
+          CASE WHEN contactPriority = 'primary' THEN 0 ELSE 1 END,
+          type
+      `;
+      const contactsStmt = this.db.prepare(contactsQuery);
+      const contacts = contactsStmt.all(id);
+      (client as any).contacts = contacts;
+      
+      // Get linked client information if linkedClientId exists
+      if (client.linkedClientId) {
+        const linkedClientQuery = `
+          SELECT id, title, firstName, middleName, lastName
+          FROM clients 
+          WHERE id = ? AND deletionStatus = 'active'
+        `;
+        const linkedClientStmt = this.db.prepare(linkedClientQuery);
+        const linkedClient = linkedClientStmt.get(client.linkedClientId) as any;
+        if (linkedClient) {
+          const linkedClientName = [
+            linkedClient.title,
+            linkedClient.firstName,
+            linkedClient.middleName,
+            linkedClient.lastName
+          ].filter(Boolean).join(' ');
+          (client as any).linkedClientName = linkedClientName;
+        }
+      }
+      
+      // Get all clients that are linked TO this client (reverse relationships)
+      const reverseLinkedQuery = `
+        SELECT id, title, firstName, middleName, lastName, linkedClientId, linkedClientRelationship
+        FROM clients 
+        WHERE linkedClientId = ? AND deletionStatus = 'active'
+      `;
+      const reverseLinkedStmt = this.db.prepare(reverseLinkedQuery);
+      const reverseLinkedClients = reverseLinkedStmt.all(id) as any[];
+      
+      // Combine primary linked client and reverse linked clients
+      const allLinkedClients = [];
+      
+      // Add primary linked client with actual relationship type
+      if (client.linkedClientId && (client as any).linkedClientName) {
+        allLinkedClients.push({
+          id: client.linkedClientId,
+          name: (client as any).linkedClientName,
+          relationshipType: client.linkedClientRelationship || 'other'
+        });
+      }
+      
+      // Add reverse linked clients with their relationship types
+      reverseLinkedClients.forEach((reverseClient: any) => {
+        const name = [
+          reverseClient.title,
+          reverseClient.firstName,
+          reverseClient.middleName,
+          reverseClient.lastName
+        ].filter(Boolean).join(' ');
+        
+        allLinkedClients.push({
+          id: reverseClient.id,
+          name: name,
+          relationshipType: reverseClient.linkedClientRelationship || 'other'
+        });
+      });
+      
+      (client as any).allLinkedClients = allLinkedClients;
+    }
+    
+    return client;
   }
 
   // Create new client
@@ -89,8 +242,8 @@ export class ClientRepository {
     const stmt = this.db.prepare(`
       INSERT INTO clients (
         title, firstName, middleName, lastName, dateOfBirth, gender, occupation,
-        kycNumber, panNumber, aadhaarNumber, addressId, linkedClientId, status, deletionStatus
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+        kycNumber, panNumber, aadhaarNumber, addressId, linkedClientId, linkedClientRelationship, status, deletionStatus
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
     `);
 
     const result = stmt.run(
@@ -106,6 +259,7 @@ export class ClientRepository {
       client.aadhaarNumber || null,
       client.addressId || null,
       client.linkedClientId || null,
+      client.linkedClientRelationship || null,
       client.status || 'active'
     );
 
@@ -120,7 +274,7 @@ export class ClientRepository {
     // Only allow updating specific fields that exist in the new schema
     const allowedFields = [
       'title', 'firstName', 'middleName', 'lastName', 'dateOfBirth', 'gender', 'occupation',
-      'kycNumber', 'panNumber', 'aadhaarNumber', 'addressId', 'linkedClientId', 'status', 'deletionStatus'
+      'kycNumber', 'panNumber', 'aadhaarNumber', 'addressId', 'linkedClientId', 'linkedClientRelationship', 'status', 'deletionStatus'
     ];
 
     Object.entries(client).forEach(([key, value]) => {

@@ -8,8 +8,13 @@ import SuccessMessage from './common/SuccessMessage';
 
 interface Client {
   id: number;
+  title?: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
+  dateOfBirth?: string;
+  gender?: string;
+  occupation?: string;
   email?: string;
   phone?: string;
   kycNumber?: string;
@@ -23,9 +28,21 @@ interface Client {
   pincode?: string;
   country?: string;
   status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
-  linkedClientId?: string;
+  linkedClientId?: number;
   linkedClientName?: string;
   linkedClientRelationship?: string;
+  contacts?: {
+    id: string;
+    type: 'email' | 'phone';
+    contactPriority: 'primary' | 'secondary';
+    contactDetails: string;
+    isVerified?: boolean;
+  }[];
+  allLinkedClients?: {
+    id: number;
+    name: string;
+    relationshipType: string;
+  }[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -165,19 +182,27 @@ const ClientManagement: React.FC = () => {
 
   // Pagination handlers
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) {
+      fetchClients(page, recordsPerPage, searchFilter);
+    }
   };
 
   const handleRecordsPerPageChange = (newLimit: number) => {
     setRecordsPerPage(newLimit);
     setCurrentPage(1);
+    fetchClients(1, newLimit, searchFilter);
   };
 
   // Fetch clients from database
   const fetchClients = useCallback(async (page = currentPage, limit = recordsPerPage, search = searchFilter) => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
+      clearAllMessages();
+      
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
       
       // Add search parameter
       if (search && search.length >= 3) {
@@ -186,7 +211,7 @@ const ClientManagement: React.FC = () => {
 
       // Add status filter
       if (appliedFilters.status.length > 0) {
-        params.append('status', appliedFilters.status[0]);
+        params.append('status', appliedFilters.status.join(','));
       }
 
       // Add state filter
@@ -198,30 +223,53 @@ const ClientManagement: React.FC = () => {
       if (appliedFilters.district) {
         params.append('district', appliedFilters.district);
       }
+
+      // Add advanced search parameters
+      if (appliedAdvancedSearch.addressLine1) {
+        params.append('addressLine1', appliedAdvancedSearch.addressLine1);
+      }
+      if (appliedAdvancedSearch.state) {
+        params.append('advancedState', appliedAdvancedSearch.state);
+      }
+      if (appliedAdvancedSearch.district) {
+        params.append('advancedDistrict', appliedAdvancedSearch.district);
+      }
+      if (appliedAdvancedSearch.pincode) {
+        params.append('pincode', appliedAdvancedSearch.pincode);
+      }
       
-      const response = await axios.get(`/api/clients?${params}`);
+      const response = await axios.get<ApiResponse<Client[]>>(`/api/clients?${params}`);
       if (response.data.success) {
         setClients(response.data.data);
-        setTotalRecords(response.data.count || response.data.data.length);
-        setTotalPages(Math.ceil((response.data.count || response.data.data.length) / recordsPerPage));
+        
+        // Extract pagination info from response
+        const totalCount = response.data.count || 0;
+        const calculatedTotalPages = Math.ceil(totalCount / limit);
+        
+        setTotalRecords(totalCount);
+        setTotalPages(calculatedTotalPages);
+        setCurrentPage(page);
         
         // Calculate pagination info
-        const startRecord = (page - 1) * limit + 1;
-        const endRecord = Math.min(page * limit, response.data.count || response.data.data.length);
+        const startRecord = totalCount > 0 ? ((page - 1) * limit) + 1 : 0;
+        const endRecord = Math.min(page * limit, totalCount);
+        
         setPagination({
-          hasNextPage: page < Math.ceil((response.data.count || response.data.data.length) / limit),
+          hasNextPage: page < calculatedTotalPages,
           hasPrevPage: page > 1,
           startRecord,
           endRecord
         });
+      } else {
+        setError('Failed to fetch clients');
       }
-    } catch (err) {
-      console.error('Error fetching clients:', err);
-      setError('Failed to fetch clients');
+    } catch (error: any) {
+      console.error('Error fetching clients:', error);
+      setError(error.response?.data?.message || 'Failed to fetch clients');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, recordsPerPage, searchFilter, appliedFilters]);
+  }, [currentPage, recordsPerPage, searchFilter, appliedFilters, appliedAdvancedSearch, clearAllMessages, setError]);
 
   useEffect(() => {
     fetchClients();
@@ -383,18 +431,32 @@ const ClientManagement: React.FC = () => {
   const handleEditClient = (client: Client) => {
     // Map the client data to match what ClientForm expects
     const mappedClient = {
+      title: client.title || '',
       firstName: client.firstName,
-      middleName: '', // Default empty string
+      middleName: client.middleName || '',
       lastName: client.lastName,
+      dateOfBirth: client.dateOfBirth || '',
+      gender: client.gender || '',
+      occupation: client.occupation || '',
       email: client.email || '',
       kycNumber: client.kycNumber || '',
-      phoneNumbers: client.phone ? [{
-        id: 'phone-1',
-        countryCode: '+91',
-        number: client.phone,
-        type: 'primary' as const,
-        isVerified: false
-      }] : [],
+      phoneNumbers: client.contacts ? 
+        client.contacts
+          .filter((contact: any) => contact.type === 'phone')
+          .map((contact: any, index: number) => ({
+            id: contact.id || `phone-${index + 1}`,
+            countryCode: '+91',
+            number: contact.contactDetails,
+            type: contact.contactPriority === 'primary' ? 'primary' as const : 'secondary' as const,
+            isVerified: contact.isVerified || false
+          })) : 
+        (client.phone ? [{
+          id: 'phone-1',
+          countryCode: '+91',
+          number: client.phone,
+          type: 'primary' as const,
+          isVerified: false
+        }] : []),
       address: {
         addressLine1: client.addressLine1 || '',
         addressLine2: client.addressLine2 || '',
@@ -414,14 +476,14 @@ const ClientManagement: React.FC = () => {
       } : undefined,
       otherDocuments: [], // Default empty array
       linkedClients: client.linkedClientId ? [{
-        clientId: parseInt(client.linkedClientId),
+        clientId: client.linkedClientId,
         relationshipType: (client.linkedClientRelationship || 'other') as 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other',
         relationshipDescription: '', // We'll get this from the linked client data
         linkedAt: new Date().toISOString()
       }] : [],
       status: mapStatusForForm(client.status),
       accountBalance: 0, // Default value
-      linkedClientId: client.linkedClientId || '',
+      linkedClientId: client.linkedClientId || undefined,
       linkedClientName: client.linkedClientName || '',
       linkedClientRelationship: client.linkedClientRelationship || ''
     };
@@ -444,12 +506,12 @@ const ClientManagement: React.FC = () => {
     clearAllMessages();
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchFilter.trim()) {
-      fetchClients(1, recordsPerPage, searchFilter);
+  const handleSearch = useCallback((searchTerm: string) => {
+    setSearchFilter(searchTerm);
+    if (searchTerm.length >= 3 || searchTerm.length === 0) {
+      fetchClients(1, recordsPerPage, searchTerm);
     }
-  };
+  }, [fetchClients, recordsPerPage]);
 
   const clearSearch = () => {
     setSearchFilter('');
@@ -461,6 +523,8 @@ const ClientManagement: React.FC = () => {
     setAppliedFilters({ ...filters });
     setAppliedAdvancedSearch({ ...advancedSearch });
     setCurrentPage(1); // Reset to first page when applying filters
+    fetchClients(1, recordsPerPage, searchFilter);
+    setShowFilters(false);
   };
 
   // Clear all filters function
@@ -482,6 +546,8 @@ const ClientManagement: React.FC = () => {
     setAppliedFilters(emptyFilters);
     setAppliedAdvancedSearch(emptySearch);
     setCurrentPage(1);
+    fetchClients(1, recordsPerPage, searchFilter);
+    setShowFilters(false);
   };
 
   // Helper function to count active applied filters
@@ -570,12 +636,12 @@ const ClientManagement: React.FC = () => {
               type="text"
               placeholder="Search clients by name (min 3 letters)..."
               value={searchFilter}
-              onChange={(e) => setSearchFilter(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="search-input"
             />
             {searchFilter && (
               <button
-                onClick={() => setSearchFilter('')}
+                onClick={clearSearch}
                 className="clear-search"
                 title="Clear search"
               >
@@ -726,15 +792,15 @@ const ClientManagement: React.FC = () => {
                   <div className="user-card-details">
                     <div className="detail-row">
                       <span className="detail-label">Email:</span>
-                      <span className="detail-value">{client.email || 'Not provided'}</span>
+                      <span className="detail-value">{client.email || '-'}</span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Phone:</span>
-                      <span className="detail-value">{client.phone || 'Not provided'}</span>
+                      <span className="detail-value">{client.phone || '-'}</span>
                     </div>
                     <div className="detail-row">
                       <span className="detail-label">Address:</span>
-                      <span className="detail-value">{getAddressForUser(client)}</span>
+                      <span className="detail-value">{client.addressLine1 || '-'}</span>
                     </div>
                   </div>
                   
@@ -745,12 +811,11 @@ const ClientManagement: React.FC = () => {
                     <button onClick={() => handleEditClient(client)} className="edit-btn">
                       ✏️ Edit
                     </button>
-                    {client.status === 'active' && (
-                      <button onClick={() => handleSuspendClient(client.id)} className="suspend-btn">
-                        ⏸️ Suspend
-                      </button>
-                    )}
-                    <button onClick={() => deleteClient(client.id)} className="delete-btn">
+                    <button onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this client?')) {
+                        deleteClient(client.id);
+                      }
+                    }} className="delete-btn">
                       🗑️ Delete
                     </button>
                   </div>
@@ -786,19 +851,19 @@ const ClientManagement: React.FC = () => {
                           {getFullName(client.firstName, client.lastName)}
                         </div>
                       </td>
-                      <td className="mobile-cell">
+                      <td className="email-cell">
                         <div className="cell-content">
-                          {client.email || 'Not provided'}
+                          {client.email || '-'}
                         </div>
                       </td>
-                      <td className="mobile-cell">
+                      <td className="phone-cell">
                         <div className="cell-content">
-                          {client.phone || 'Not provided'}
+                          {client.phone || '-'}
                         </div>
                       </td>
                       <td className="address-cell">
                         <div className="cell-content">
-                          {getAddressForUser(client)}
+                          {client.addressLine1 || '-'}
                         </div>
                       </td>
                       <td className="status-cell">
@@ -822,19 +887,14 @@ const ClientManagement: React.FC = () => {
                           >
                             ✏️
                           </button>
-                          {client.status === 'active' && (
-                            <button 
-                              className="table-action-btn suspend-btn"
-                              title="Suspend client"
-                              onClick={() => handleSuspendClient(client.id)}
-                            >
-                              ⏸️
-                            </button>
-                          )}
                           <button 
                             className="table-action-btn delete-btn"
                             title="Delete client"
-                            onClick={() => deleteClient(client.id)}
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this client?')) {
+                                deleteClient(client.id);
+                              }
+                            }}
                           >
                             🗑️
                           </button>
@@ -895,18 +955,32 @@ const ClientManagement: React.FC = () => {
           onEdit={() => {
             // Map the client data to match what ClientForm expects
             const mappedClient = {
+              title: selectedClient.title || '',
               firstName: selectedClient.firstName,
-              middleName: '', // Default empty string
+              middleName: selectedClient.middleName || '',
               lastName: selectedClient.lastName,
+              dateOfBirth: selectedClient.dateOfBirth || '',
+              gender: selectedClient.gender || '',
+              occupation: selectedClient.occupation || '',
               email: selectedClient.email || '',
               kycNumber: selectedClient.kycNumber || '',
-              phoneNumbers: selectedClient.phone ? [{
-                id: 'phone-1',
-                countryCode: '+91',
-                number: selectedClient.phone,
-                type: 'primary' as const,
-                isVerified: false
-              }] : [],
+              phoneNumbers: selectedClient.contacts ? 
+                selectedClient.contacts
+                  .filter((contact: any) => contact.type === 'phone')
+                  .map((contact: any, index: number) => ({
+                    id: contact.id || `phone-${index + 1}`,
+                    countryCode: '+91',
+                    number: contact.contactDetails,
+                    type: contact.contactPriority === 'primary' ? 'primary' as const : 'secondary' as const,
+                    isVerified: contact.isVerified || false
+                  })) : 
+                (selectedClient.phone ? [{
+                  id: 'phone-1',
+                  countryCode: '+91',
+                  number: selectedClient.phone,
+                  type: 'primary' as const,
+                  isVerified: false
+                }] : []),
               address: {
                 addressLine1: selectedClient.addressLine1 || '',
                 addressLine2: selectedClient.addressLine2 || '',
@@ -926,14 +1000,14 @@ const ClientManagement: React.FC = () => {
               } : undefined,
               otherDocuments: [], // Default empty array
               linkedClients: selectedClient.linkedClientId ? [{
-                clientId: parseInt(selectedClient.linkedClientId),
+                clientId: selectedClient.linkedClientId,
                 relationshipType: (selectedClient.linkedClientRelationship || 'other') as 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other',
                 relationshipDescription: '', // We'll get this from the linked client data
                 linkedAt: new Date().toISOString()
               }] : [],
               status: mapStatusForForm(selectedClient.status),
               accountBalance: 0, // Default value
-              linkedClientId: selectedClient.linkedClientId || '',
+              linkedClientId: selectedClient.linkedClientId || undefined,
               linkedClientName: selectedClient.linkedClientName || '',
               linkedClientRelationship: selectedClient.linkedClientRelationship || ''
             };

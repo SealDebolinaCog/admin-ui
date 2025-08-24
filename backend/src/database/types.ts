@@ -50,6 +50,7 @@ export interface Client {
   aadhaarNumber?: string;
   addressId?: number;
   linkedClientId?: number;
+  linkedClientRelationship?: 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other';
   status?: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
   deletionStatus?: 'active' | 'soft_deleted' | 'hard_deleted';
   createdAt?: string;

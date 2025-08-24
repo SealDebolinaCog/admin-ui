@@ -376,4 +376,158 @@ router.get('/status/:status', (req, res) => {
   }
 });
 
+// Document download endpoint
+router.get('/:id/documents/:type/download', async (req, res) => {
+  try {
+    const clientId = parseInt(req.params.id);
+    const documentType = req.params.type as 'pan' | 'aadhaar';
+
+    if (isNaN(clientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid client ID'
+      });
+    }
+
+    if (!['pan', 'aadhaar'].includes(documentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid document type'
+      });
+    }
+
+    // Get document from database
+    const documentQuery = `
+      SELECT fileName, filePath, mimeType 
+      FROM documents 
+      WHERE entityType = 'client' 
+        AND entityId = ? 
+        AND documentType = ? 
+        AND isActive = 1
+      ORDER BY uploadedAt DESC 
+      LIMIT 1
+    `;
+    
+    const db = require('../database/database').getDatabase();
+    const stmt = db.prepare(documentQuery);
+    const document = stmt.get(clientId, documentType === 'pan' ? 'pan_card' : 'aadhar_card');
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: `${documentType.toUpperCase()} document not found`
+      });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Resolve file path relative to backend directory
+    const backendRoot = path.resolve(__dirname, '../../../backend');
+    const fullFilePath = path.join(backendRoot, document.filePath.replace(/^\//, ''));
+    
+    // Check if file exists
+    if (!fs.existsSync(fullFilePath)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Document file not found on server'
+      });
+    }
+
+    // Set appropriate headers for download
+    res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(fullFilePath);
+    fileStream.pipe(res);
+
+  } catch (error) {
+    console.error('Error downloading document:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to download document',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Document view endpoint
+router.get('/:id/documents/:type/view', async (req, res) => {
+  try {
+    const clientId = parseInt(req.params.id);
+    const documentType = req.params.type as 'pan' | 'aadhaar';
+
+    if (isNaN(clientId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid client ID'
+      });
+    }
+
+    if (!['pan', 'aadhaar'].includes(documentType)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid document type'
+      });
+    }
+
+    // Get document from database
+    const documentQuery = `
+      SELECT fileName, filePath, mimeType 
+      FROM documents 
+      WHERE entityType = 'client' 
+        AND entityId = ? 
+        AND documentType = ? 
+        AND isActive = 1
+      ORDER BY uploadedAt DESC 
+      LIMIT 1
+    `;
+    
+    const db = require('../database/database').getDatabase();
+    const stmt = db.prepare(documentQuery);
+    const document = stmt.get(clientId, documentType === 'pan' ? 'pan_card' : 'aadhar_card');
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        error: `${documentType.toUpperCase()} document not found`
+      });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Resolve file path relative to backend directory
+    const backendRoot = path.resolve(__dirname, '../../../backend');
+    const fullFilePath = path.join(backendRoot, document.filePath.replace(/^\//, ''));
+    
+    // Check if file exists
+    if (!fs.existsSync(fullFilePath)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Document file not found on server'
+      });
+    }
+
+    // Set appropriate headers for viewing
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(fullFilePath);
+    fileStream.pipe(res);
+
+  } catch (error) {
+    console.error('Error viewing document:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to view document',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router; 

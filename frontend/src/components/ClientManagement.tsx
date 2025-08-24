@@ -694,9 +694,14 @@ const ClientManagement: React.FC = () => {
       {/* Content */}
       {clients.length === 0 ? (
         <div className="empty-state">
-          <p>No clients found. Add your first client to get started!</p>
-          <button onClick={() => setShowClientForm(true)} className="add-first-client-btn">
-            ➕ Add First Client
+          <div className="empty-icon">👥</div>
+          <h3>No clients found</h3>
+          <p>Get started by adding your first client</p>
+          <button 
+            className="add-first-user-btn"
+            onClick={() => setShowClientForm(true)}
+          >
+            Add First Client
           </button>
         </div>
       ) : (

@@ -1,25 +1,7 @@
 import { getDatabase } from './database';
+import { Shop } from './types';
 
-export interface Shop {
-  id?: number;
-  shopName: string;
-  shopType?: string;
-  category?: string;
-  status: 'active' | 'pending' | 'suspended' | 'inactive';
-  ownerName: string;
-  ownerEmail?: string;
-  ownerPhone?: string;
-  addressLine1?: string;
-  addressLine2?: string;
-  addressLine3?: string;
-  state?: string;
-  district?: string;
-  pincode?: string;
-  country?: string;
-  deletionStatus?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
+export { Shop };
 
 export class ShopRepository {
   private db = getDatabase();
@@ -35,48 +17,64 @@ export class ShopRepository {
     includeDeleted?: boolean;
   }): Shop[] {
     let query = `
-      SELECT * FROM shops 
+      SELECT 
+        s.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country,
+        c.firstName as ownerFirstName,
+        c.lastName as ownerLastName,
+        c.email as ownerEmail,
+        c.phoneNumber as ownerPhone
+      FROM shops s
+      LEFT JOIN addresses a ON s.addressId = a.id
+      LEFT JOIN clients c ON s.ownerId = c.id
       WHERE 1=1
     `;
     const params: any[] = [];
 
     // Only show non-deleted records by default
     if (!filters?.includeDeleted) {
-      query += ` AND deletionStatus = 0`;
+      query += ` AND s.deletionStatus = 'active'`;
     }
 
     if (filters?.status) {
-      query += ` AND status = ?`;
+      query += ` AND s.status = ?`;
       params.push(filters.status);
     }
 
     if (filters?.search) {
-      query += ` AND (shopName LIKE ? OR ownerName LIKE ?)`;
+      query += ` AND (s.shopName LIKE ? OR c.firstName LIKE ? OR c.lastName LIKE ?)`;
       const searchTerm = `%${filters.search}%`;
-      params.push(searchTerm, searchTerm);
+      params.push(searchTerm, searchTerm, searchTerm);
     }
 
     if (filters?.shopType) {
-      query += ` AND shopType = ?`;
+      query += ` AND s.shopType = ?`;
       params.push(filters.shopType);
     }
 
     if (filters?.category) {
-      query += ` AND category = ?`;
+      query += ` AND s.category = ?`;
       params.push(filters.category);
     }
 
     if (filters?.state) {
-      query += ` AND state = ?`;
+      query += ` AND a.state = ?`;
       params.push(filters.state);
     }
 
     if (filters?.district) {
-      query += ` AND district = ?`;
+      query += ` AND a.district = ?`;
       params.push(filters.district);
     }
 
-    query += ` ORDER BY shopName`;
+    query += ` ORDER BY s.shopName`;
 
     const stmt = this.db.prepare(query);
     return stmt.all(params) as Shop[];
@@ -84,17 +82,36 @@ export class ShopRepository {
 
   // Get shop by ID
   getById(id: number): Shop | undefined {
-    const stmt = this.db.prepare('SELECT * FROM shops WHERE id = ? AND deletionStatus = 0');
+    const query = `
+      SELECT 
+        s.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country,
+        c.firstName as ownerFirstName,
+        c.lastName as ownerLastName,
+        c.email as ownerEmail,
+        c.phoneNumber as ownerPhone
+      FROM shops s
+      LEFT JOIN addresses a ON s.addressId = a.id
+      LEFT JOIN clients c ON s.ownerId = c.id
+      WHERE s.id = ? AND s.deletionStatus = 'active'
+    `;
+    const stmt = this.db.prepare(query);
     return stmt.get(id) as Shop | undefined;
   }
 
   // Create new shop
-  create(shop: Omit<Shop, 'id' | 'createdAt' | 'updatedAt' | 'deletionStatus'>): Shop {
+  create(shop: any): Shop {
     const stmt = this.db.prepare(`
       INSERT INTO shops (
-        shopName, shopType, category, status, ownerName, ownerEmail, ownerPhone,
-        addressLine1, addressLine2, addressLine3, state, district, pincode, country, deletionStatus
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        shopName, shopType, category, status, ownerId, addressId, deletionStatus
+      ) VALUES (?, ?, ?, ?, ?, ?, 'active')
     `);
 
     const result = stmt.run(
@@ -102,19 +119,11 @@ export class ShopRepository {
       shop.shopType || null,
       shop.category || null,
       shop.status,
-      shop.ownerName,
-      shop.ownerEmail || null,
-      shop.ownerPhone || null,
-      shop.addressLine1 || null,
-      shop.addressLine2 || null,
-      shop.addressLine3 || null,
-      shop.state || null,
-      shop.district || null,
-      shop.pincode || null,
-      shop.country || 'India'
+      shop.ownerId,
+      shop.addressId || null
     );
 
-    return { ...shop, id: result.lastInsertRowid as number, deletionStatus: false };
+    return { ...shop, id: result.lastInsertRowid as number, deletionStatus: 'active' };
   }
 
   // Update existing shop
@@ -122,8 +131,13 @@ export class ShopRepository {
     const fields: string[] = [];
     const values: any[] = [];
 
+    // Only allow updating specific fields that exist in the new schema
+    const allowedFields = [
+      'shopName', 'shopType', 'category', 'status', 'ownerId', 'addressId', 'deletionStatus'
+    ];
+
     Object.entries(shop).forEach(([key, value]) => {
-      if (value !== undefined) {
+      if (value !== undefined && allowedFields.includes(key)) {
         fields.push(`${key} = ?`);
         values.push(value);
       }
@@ -141,9 +155,9 @@ export class ShopRepository {
     return result.changes > 0;
   }
 
-  // Soft delete shop (set deletionStatus to true)
+  // Soft delete shop (set deletionStatus to soft_deleted)
   delete(id: number): boolean {
-    const stmt = this.db.prepare('UPDATE shops SET deletionStatus = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
+    const stmt = this.db.prepare('UPDATE shops SET deletionStatus = "soft_deleted", updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
   }
@@ -155,9 +169,9 @@ export class ShopRepository {
     return result.changes > 0;
   }
 
-  // Restore deleted shop (set deletionStatus to false)
+  // Restore deleted shop (set deletionStatus to active)
   restore(id: number): boolean {
-    const stmt = this.db.prepare('UPDATE shops SET deletionStatus = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
+    const stmt = this.db.prepare('UPDATE shops SET deletionStatus = "active", updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
   }
@@ -166,7 +180,7 @@ export class ShopRepository {
   getCount(includeDeleted: boolean = false): number {
     let query = 'SELECT COUNT(*) as count FROM shops';
     if (!includeDeleted) {
-      query += ' WHERE deletionStatus = 0';
+      query += ' WHERE deletionStatus = "active"';
     }
     const stmt = this.db.prepare(query);
     const result = stmt.get() as { count: number };
@@ -175,11 +189,30 @@ export class ShopRepository {
 
   // Get shops by status (excluding deleted by default)
   getByStatus(status: string, includeDeleted: boolean = false): Shop[] {
-    let query = 'SELECT * FROM shops WHERE status = ?';
+    let query = `
+      SELECT 
+        s.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country,
+        c.firstName as ownerFirstName,
+        c.lastName as ownerLastName,
+        c.email as ownerEmail,
+        c.phoneNumber as ownerPhone
+      FROM shops s
+      LEFT JOIN addresses a ON s.addressId = a.id
+      LEFT JOIN clients c ON s.ownerId = c.id
+      WHERE s.status = ?
+    `;
     if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
+      query += ' AND s.deletionStatus = "active"';
     }
-    query += ' ORDER BY shopName';
+    query += ' ORDER BY s.shopName';
     const stmt = this.db.prepare(query);
     return stmt.all(status) as Shop[];
   }
@@ -187,37 +220,118 @@ export class ShopRepository {
   // Search shops (excluding deleted by default)
   search(searchTerm: string, includeDeleted: boolean = false): Shop[] {
     let query = `
-      SELECT * FROM shops 
-      WHERE (shopName LIKE ? OR ownerName LIKE ?)
+      SELECT 
+        s.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country,
+        c.firstName as ownerFirstName,
+        c.lastName as ownerLastName,
+        c.email as ownerEmail,
+        c.phoneNumber as ownerPhone
+      FROM shops s
+      LEFT JOIN addresses a ON s.addressId = a.id
+      LEFT JOIN clients c ON s.ownerId = c.id
+      WHERE (s.shopName LIKE ? OR c.firstName LIKE ? OR c.lastName LIKE ?)
     `;
     if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
+      query += ' AND s.deletionStatus = "active"';
     }
-    query += ' ORDER BY shopName';
+    query += ' ORDER BY s.shopName';
     const stmt = this.db.prepare(query);
     const term = `%${searchTerm}%`;
-    return stmt.all(term, term) as Shop[];
+    return stmt.all(term, term, term) as Shop[];
   }
 
   // Get shops by type (excluding deleted by default)
   getByType(shopType: string, includeDeleted: boolean = false): Shop[] {
-    let query = 'SELECT * FROM shops WHERE shopType = ?';
+    let query = `
+      SELECT 
+        s.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country,
+        c.firstName as ownerFirstName,
+        c.lastName as ownerLastName,
+        c.email as ownerEmail,
+        c.phoneNumber as ownerPhone
+      FROM shops s
+      LEFT JOIN addresses a ON s.addressId = a.id
+      LEFT JOIN clients c ON s.ownerId = c.id
+      WHERE s.shopType = ?
+    `;
     if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
+      query += ' AND s.deletionStatus = "active"';
     }
-    query += ' ORDER BY shopName';
+    query += ' ORDER BY s.shopName';
     const stmt = this.db.prepare(query);
     return stmt.all(shopType) as Shop[];
   }
 
   // Get shops by category (excluding deleted by default)
   getByCategory(category: string, includeDeleted: boolean = false): Shop[] {
-    let query = 'SELECT * FROM shops WHERE category = ?';
+    let query = `
+      SELECT 
+        s.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country,
+        c.firstName as ownerFirstName,
+        c.lastName as ownerLastName,
+        c.email as ownerEmail,
+        c.phoneNumber as ownerPhone
+      FROM shops s
+      LEFT JOIN addresses a ON s.addressId = a.id
+      LEFT JOIN clients c ON s.ownerId = c.id
+      WHERE s.category = ?
+    `;
     if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
+      query += ' AND s.deletionStatus = "active"';
     }
-    query += ' ORDER BY shopName';
+    query += ' ORDER BY s.shopName';
     const stmt = this.db.prepare(query);
     return stmt.all(category) as Shop[];
+  }
+
+  // Get shops by owner ID
+  getByOwnerId(ownerId: number): Shop[] {
+    const query = `
+      SELECT 
+        s.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country,
+        c.firstName as ownerFirstName,
+        c.lastName as ownerLastName,
+        c.email as ownerEmail,
+        c.phoneNumber as ownerPhone
+      FROM shops s
+      LEFT JOIN addresses a ON s.addressId = a.id
+      LEFT JOIN clients c ON s.ownerId = c.id
+      WHERE s.ownerId = ? AND s.deletionStatus = "active"
+      ORDER BY s.shopName
+    `;
+    const stmt = this.db.prepare(query);
+    return stmt.all(ownerId) as Shop[];
   }
 } 

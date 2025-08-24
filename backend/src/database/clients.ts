@@ -1,29 +1,7 @@
 import { getDatabase } from './database';
+import { Client } from './types';
 
-export interface Client {
-  id?: number;
-  firstName: string;
-  lastName: string;
-  email?: string;
-  phone?: string;
-  kycNumber?: string;
-  panNumber?: string;
-  aadhaarNumber?: string;
-  addressLine1?: string;
-  addressLine2?: string;
-  addressLine3?: string;
-  state?: string;
-  district?: string;
-  pincode?: string;
-  country?: string;
-  status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
-  linkedClientId?: string;
-  linkedClientName?: string;
-  linkedClientRelationship?: string;
-  deletionStatus?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
+export { Client };
 
 export class ClientRepository {
   private db = getDatabase();
@@ -37,38 +15,49 @@ export class ClientRepository {
     includeDeleted?: boolean;
   }): Client[] {
     let query = `
-      SELECT * FROM clients 
+      SELECT 
+        c.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country
+      FROM clients c
+      LEFT JOIN addresses a ON c.addressId = a.id
       WHERE 1=1
     `;
     const params: any[] = [];
 
     // Only show non-deleted records by default
     if (!filters?.includeDeleted) {
-      query += ` AND deletionStatus = 0`;
+      query += ` AND c.deletionStatus = 'active'`;
     }
 
     if (filters?.status) {
-      query += ` AND status = ?`;
+      query += ` AND c.status = ?`;
       params.push(filters.status);
     }
 
     if (filters?.search) {
-      query += ` AND (firstName LIKE ? OR lastName LIKE ? OR email LIKE ?)`;
+      query += ` AND (c.firstName LIKE ? OR c.lastName LIKE ? OR c.middleName LIKE ?)`;
       const searchTerm = `%${filters.search}%`;
       params.push(searchTerm, searchTerm, searchTerm);
     }
 
     if (filters?.state) {
-      query += ` AND state = ?`;
+      query += ` AND a.state = ?`;
       params.push(filters.state);
     }
 
     if (filters?.district) {
-      query += ` AND district = ?`;
+      query += ` AND a.district = ?`;
       params.push(filters.district);
     }
 
-    query += ` ORDER BY firstName, lastName`;
+    query += ` ORDER BY c.firstName, c.lastName`;
 
     const stmt = this.db.prepare(query);
     return stmt.all(params) as Client[];
@@ -76,43 +65,51 @@ export class ClientRepository {
 
   // Get client by ID
   getById(id: number): Client | undefined {
-    const stmt = this.db.prepare('SELECT * FROM clients WHERE id = ? AND deletionStatus = 0');
+    const query = `
+      SELECT 
+        c.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country
+      FROM clients c
+      LEFT JOIN addresses a ON c.addressId = a.id
+      WHERE c.id = ? AND c.deletionStatus = 'active'
+    `;
+    const stmt = this.db.prepare(query);
     return stmt.get(id) as Client | undefined;
   }
 
   // Create new client
-  create(client: Omit<Client, 'id' | 'createdAt' | 'updatedAt' | 'deletionStatus'>): Client {
+  create(client: any): Client {
     const stmt = this.db.prepare(`
       INSERT INTO clients (
-        firstName, lastName, email, phone, kycNumber, panNumber, aadhaarNumber,
-        addressLine1, addressLine2, addressLine3,
-        state, district, pincode, country, status,
-        linkedClientId, linkedClientName, linkedClientRelationship, deletionStatus
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        title, firstName, middleName, lastName, dateOfBirth, gender, occupation,
+        kycNumber, panNumber, aadhaarNumber, addressId, linkedClientId, status, deletionStatus
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
     `);
 
     const result = stmt.run(
+      client.title || null,
       client.firstName,
+      client.middleName || null,
       client.lastName,
-      client.email || null,
-      client.phone || null,
+      client.dateOfBirth || null,
+      client.gender || null,
+      client.occupation || null,
       client.kycNumber || null,
       client.panNumber || null,
       client.aadhaarNumber || null,
-      client.addressLine1 || null,
-      client.addressLine2 || null,
-      client.addressLine3 || null,
-      client.state || null,
-      client.district || null,
-      client.pincode || null,
-      client.country || 'India',
-      client.status,
+      client.addressId || null,
       client.linkedClientId || null,
-      client.linkedClientName || null,
-      client.linkedClientRelationship || null
+      client.status || 'active'
     );
 
-    return { ...client, id: result.lastInsertRowid as number, deletionStatus: false };
+    return { ...client, id: result.lastInsertRowid as number, deletionStatus: 'active' };
   }
 
   // Update existing client
@@ -120,11 +117,14 @@ export class ClientRepository {
     const fields: string[] = [];
     const values: any[] = [];
 
-    console.log('Updating client in repository with ID:', id);
-    console.log('Client data to update:', client);
+    // Only allow updating specific fields that exist in the new schema
+    const allowedFields = [
+      'title', 'firstName', 'middleName', 'lastName', 'dateOfBirth', 'gender', 'occupation',
+      'kycNumber', 'panNumber', 'aadhaarNumber', 'addressId', 'linkedClientId', 'status', 'deletionStatus'
+    ];
 
     Object.entries(client).forEach(([key, value]) => {
-      if (value !== undefined) {
+      if (value !== undefined && allowedFields.includes(key)) {
         fields.push(`${key} = ?`);
         values.push(value);
       }
@@ -133,24 +133,18 @@ export class ClientRepository {
     if (fields.length === 0) return false;
 
     fields.push('updatedAt = CURRENT_TIMESTAMP');
-    
-    // Add the id parameter for the WHERE clause
     values.push(id);
 
     const query = `UPDATE clients SET ${fields.join(', ')} WHERE id = ?`;
-    console.log('SQL Query:', query);
-    console.log('Values:', values);
-    
     const stmt = this.db.prepare(query);
     const result = stmt.run(...values);
 
-    console.log('Update result:', result);
     return result.changes > 0;
   }
 
-  // Soft delete client (set deletionStatus to true)
+  // Soft delete client (set deletionStatus to soft_deleted)
   delete(id: number): boolean {
-    const stmt = this.db.prepare('UPDATE clients SET deletionStatus = 1, updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
+    const stmt = this.db.prepare('UPDATE clients SET deletionStatus = "soft_deleted", updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
   }
@@ -162,9 +156,9 @@ export class ClientRepository {
     return result.changes > 0;
   }
 
-  // Restore deleted client (set deletionStatus to false)
+  // Restore deleted client (set deletionStatus to active)
   restore(id: number): boolean {
-    const stmt = this.db.prepare('UPDATE clients SET deletionStatus = 0, updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
+    const stmt = this.db.prepare('UPDATE clients SET deletionStatus = "active", updatedAt = CURRENT_TIMESTAMP WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
   }
@@ -173,7 +167,7 @@ export class ClientRepository {
   getCount(includeDeleted: boolean = false): number {
     let query = 'SELECT COUNT(*) as count FROM clients';
     if (!includeDeleted) {
-      query += ' WHERE deletionStatus = 0';
+      query += ' WHERE deletionStatus = "active"';
     }
     const stmt = this.db.prepare(query);
     const result = stmt.get() as { count: number };
@@ -182,11 +176,25 @@ export class ClientRepository {
 
   // Get clients by status (excluding deleted by default)
   getByStatus(status: string, includeDeleted: boolean = false): Client[] {
-    let query = 'SELECT * FROM clients WHERE status = ?';
+    let query = `
+      SELECT 
+        c.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country
+      FROM clients c
+      LEFT JOIN addresses a ON c.addressId = a.id
+      WHERE c.status = ?
+    `;
     if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
+      query += ' AND c.deletionStatus = "active"';
     }
-    query += ' ORDER BY firstName, lastName';
+    query += ' ORDER BY c.firstName, c.lastName';
     const stmt = this.db.prepare(query);
     return stmt.all(status) as Client[];
   }
@@ -194,15 +202,48 @@ export class ClientRepository {
   // Search clients (excluding deleted by default)
   search(searchTerm: string, includeDeleted: boolean = false): Client[] {
     let query = `
-      SELECT * FROM clients 
-      WHERE (firstName LIKE ? OR lastName LIKE ? OR email LIKE ?)
+      SELECT 
+        c.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country
+      FROM clients c
+      LEFT JOIN addresses a ON c.addressId = a.id
+      WHERE (c.firstName LIKE ? OR c.lastName LIKE ? OR c.email LIKE ?)
     `;
     if (!includeDeleted) {
-      query += ' AND deletionStatus = 0';
+      query += ' AND c.deletionStatus = "active"';
     }
-    query += ' ORDER BY firstName, lastName';
+    query += ' ORDER BY c.firstName, c.lastName';
     const stmt = this.db.prepare(query);
     const term = `%${searchTerm}%`;
     return stmt.all(term, term, term) as Client[];
+  }
+
+  // Get clients by linked client ID
+  getByLinkedClientId(linkedClientId: number): Client[] {
+    const query = `
+      SELECT 
+        c.*,
+        a.addressLine1,
+        a.addressLine2, 
+        a.addressLine3,
+        a.city,
+        a.state,
+        a.district,
+        a.pincode,
+        a.country
+      FROM clients c
+      LEFT JOIN addresses a ON c.addressId = a.id
+      WHERE c.linkedClientId = ? AND c.deletionStatus = "active"
+      ORDER BY c.firstName, c.lastName
+    `;
+    const stmt = this.db.prepare(query);
+    return stmt.all(linkedClientId) as Client[];
   }
 } 

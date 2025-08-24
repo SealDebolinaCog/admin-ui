@@ -1,1 +1,10 @@
 node_modules
+package-lock.json
+backend/dist
+backend/data
+frontend/node_modules
+frontend/build
+backend/test-aadhaar.png
+backend/test-pan.png
+backend/test-pan.txt
+backend/uploads/documents

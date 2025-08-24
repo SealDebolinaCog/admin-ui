@@ -63,9 +63,19 @@ router.get('/:id', (req, res) => {
 });
 
 // Create new client
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const clientData: Omit<Client, 'id' | 'createdAt' | 'updatedAt'> = req.body;
+    console.log('=== CLIENT CREATION REQUEST ===');
+    console.log('Full request body:', JSON.stringify(req.body, null, 2));
+    console.log('Request headers:', req.headers);
+    
+    const { address, contacts, documents, ...clientData } = req.body;
+    
+    console.log('Extracted data:');
+    console.log('- clientData:', clientData);
+    console.log('- address:', address);
+    console.log('- contacts:', contacts);
+    console.log('- documents:', documents);
     
     // Validate required fields
     if (!clientData.firstName || !clientData.lastName) {
@@ -75,7 +85,89 @@ router.post('/', (req, res) => {
       });
     }
 
-    const newClient = clientRepo.create(clientData);
+    let addressId = null;
+    
+    // Handle address creation if provided
+    if (address && (address.addressLine1 || address.state || address.district || address.pincode)) {
+      const { AddressRepository } = await import('../database/addresses');
+      const addressRepo = new AddressRepository();
+      
+      const newAddress = addressRepo.create({
+        addressLine1: address.addressLine1 || '',
+        addressLine2: address.addressLine2 || null,
+        addressLine3: address.addressLine3 || null,
+        city: address.city || null,
+        state: address.state || '',
+        district: address.district || '',
+        pincode: address.pincode || '',
+        country: address.country || 'India'
+      });
+      
+      addressId = newAddress.id;
+    }
+    
+    // Create client with addressId
+    const newClient = clientRepo.create({
+      ...clientData,
+      addressId
+    });
+    
+    // Handle contacts creation if provided
+    if (contacts && Array.isArray(contacts) && contacts.length > 0) {
+      try {
+        const { ContactRepository } = await import('../database/contacts');
+        const contactRepo = new ContactRepository();
+        
+        const contactsToCreate = contacts.map(contact => ({
+          clientId: newClient.id!,
+          type: contact.type,
+          contactPriority: contact.contactPriority || null,
+          contactDetails: contact.contactDetails
+        }));
+        
+        console.log('Creating contacts:', contactsToCreate);
+        const createdContacts = contactRepo.createMultiple(contactsToCreate);
+        console.log('Created contacts:', createdContacts);
+      } catch (contactError) {
+        console.error('Error creating contacts:', contactError);
+        // Don't fail the entire client creation if contacts fail
+      }
+    }
+    
+    // Handle documents creation if provided
+    if (documents && Array.isArray(documents) && documents.length > 0) {
+      try {
+        const { DocumentRepository } = await import('../database/documents');
+        const documentRepo = new DocumentRepository();
+        
+        const documentsToCreate = documents.map(document => ({
+          entityType: 'client' as const,
+          entityId: newClient.id!,
+          documentType: document.documentType,
+          documentNumber: document.documentNumber || null,
+          fileName: document.fileName,
+          filePath: document.filePath,
+          fileSize: document.fileSize,
+          mimeType: document.mimeType,
+          expiryDate: document.expiryDate || null,
+          isVerified: document.isVerified || false,
+          isActive: document.isActive !== undefined ? document.isActive : true,
+          notes: document.notes || null
+        }));
+        
+        console.log('Creating documents:', documentsToCreate);
+        const createdDocuments = [];
+        for (const doc of documentsToCreate) {
+          const createdDoc = documentRepo.create(doc);
+          createdDocuments.push(createdDoc);
+        }
+        console.log('Created documents:', createdDocuments);
+      } catch (documentError) {
+        console.error('Error creating documents:', documentError);
+        // Don't fail the entire client creation if documents fail
+      }
+    }
+    
     res.status(201).json({
       success: true,
       data: newClient,

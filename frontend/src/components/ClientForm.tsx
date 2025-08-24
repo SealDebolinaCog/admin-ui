@@ -54,9 +54,15 @@ interface LinkedClient {
 
 interface ClientFormData {
   // Full name
+  title?: string;
   firstName: string;
   middleName?: string;
   lastName: string;
+  
+  // Personal information
+  dateOfBirth?: string;
+  gender?: string;
+  occupation?: string;
   
   // Address
   address: Address;
@@ -160,11 +166,24 @@ const CLIENT_STATUSES = [
   { value: 'deleted', label: 'Deleted' }
 ];
 
+const TITLE_OPTIONS = [
+  { value: '', label: 'Select Title (Optional)' },
+  { value: 'Mr', label: 'Mr.' },
+  { value: 'Ms', label: 'Ms.' },
+  { value: 'Mrs', label: 'Mrs.' },
+  { value: 'Dr', label: 'Dr.' },
+  { value: 'Prof', label: 'Prof.' }
+];
+
 const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, initialData, mode }) => {
   const [formData, setFormData] = useState<ClientFormData>({
+    title: '',
     firstName: '',
     middleName: '',
     lastName: '',
+    dateOfBirth: '',
+    gender: '',
+    occupation: '',
     address: {
       addressLine1: '',
       addressLine2: '',
@@ -1081,9 +1100,14 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
     // Generate a random test data set
     const testDataSets = [
       {
+        title: 'Mr',
         firstName: 'John',
         middleName: 'Michael',
         lastName: 'Doe',
+        kycNumber: 'KYC202400001',
+        dateOfBirth: '1990-01-15',
+        gender: 'male',
+        occupation: 'Software Engineer',
         address: {
           addressLine1: '123 Test Street',
           addressLine2: 'Apartment 4B',
@@ -1093,7 +1117,6 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
           pincode: '700001',
           country: 'India'
         },
-        kycNumber: 'KYC202400001',
         email: 'john.doe@test.com',
         phoneNumbers: [
           {
@@ -1121,9 +1144,14 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
         }
       },
       {
+        title: 'Ms',
         firstName: 'Sarah',
         middleName: 'Elizabeth',
         lastName: 'Johnson',
+        kycNumber: 'KYC202400002',
+        dateOfBirth: '1985-05-20',
+        gender: 'female',
+        occupation: 'Doctor',
         address: {
           addressLine1: '456 Business Park',
           addressLine2: 'Suite 15',
@@ -1133,7 +1161,6 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
           pincode: '700010',
           country: 'India'
         },
-        kycNumber: 'KYC202400002',
         email: 'sarah.johnson@test.com',
         phoneNumbers: [
           {
@@ -1154,9 +1181,14 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
         }
       },
       {
+        title: 'Mr',
         firstName: 'Rajesh',
         middleName: 'Kumar',
         lastName: 'Sharma',
+        kycNumber: 'KYC202400003',
+        dateOfBirth: '1978-12-10',
+        gender: 'male',
+        occupation: 'Business Owner',
         address: {
           addressLine1: '789 Residential Colony',
           addressLine2: 'Block C',
@@ -1166,7 +1198,6 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
           pincode: '700011',
           country: 'India'
         },
-        kycNumber: 'KYC202400003',
         email: 'rajesh.sharma@test.com',
         phoneNumbers: [
           {
@@ -1265,7 +1296,24 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
             <div className="form-step">
               <h3>Personal Information</h3>
               
-              <div className="form-row">
+              <div className="form-column">
+                <div className="form-group">
+                  <label htmlFor="title">Title</label>
+                  <select
+                    id="title"
+                    value={formData.title || ''}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    className={errors.title ? 'error' : ''}
+                  >
+                    {TITLE_OPTIONS.map(title => (
+                      <option key={title.value} value={title.value}>
+                        {title.label}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.title && <span className="error-text">{errors.title}</span>}
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="firstName">First Name *</label>
                   <input
@@ -1301,9 +1349,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                   />
                   {errors.lastName && <span className="error-text">{errors.lastName}</span>}
                 </div>
-              </div>
 
-              <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="kycNumber">KYC/CIF Number *</label>
                   <input
@@ -1319,6 +1365,47 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                     }}
                   />
                   {errors.kycNumber && <span className="error-text">{errors.kycNumber}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="dateOfBirth">Date of Birth</label>
+                  <input
+                    type="date"
+                    id="dateOfBirth"
+                    value={formData.dateOfBirth || ''}
+                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                    className={errors.dateOfBirth ? 'error' : ''}
+                  />
+                  {errors.dateOfBirth && <span className="error-text">{errors.dateOfBirth}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="gender">Gender</label>
+                  <select
+                    id="gender"
+                    value={formData.gender || ''}
+                    onChange={(e) => handleInputChange('gender', e.target.value)}
+                    className={errors.gender ? 'error' : ''}
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                  {errors.gender && <span className="error-text">{errors.gender}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="occupation">Occupation</label>
+                  <input
+                    type="text"
+                    id="occupation"
+                    value={formData.occupation || ''}
+                    onChange={(e) => handleInputChange('occupation', e.target.value)}
+                    className={errors.occupation ? 'error' : ''}
+                    placeholder="e.g., Engineer, Doctor, Teacher"
+                  />
+                  {errors.occupation && <span className="error-text">{errors.occupation}</span>}
                 </div>
 
                 {/* Status field only visible when editing existing clients */}
@@ -1632,28 +1719,11 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
             </div>
           )}
 
-          {/* Step 4: Account & Links */}
+          {/* Step 4: Client Relationships */}
           {currentStep === 4 && (
             <div className="form-step">
-              <h3>Account & Relationships</h3>
+              <h3>Client Relationships</h3>
               
-              <div className="form-section">
-                <h4>Account Information</h4>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="accountBalance">Account Balance (₹)</label>
-                    <input
-                      type="number"
-                      id="accountBalance"
-                      value={formData.accountBalance || 0}
-                      onChange={(e) => handleInputChange('accountBalance', parseFloat(e.target.value) || 0)}
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div className="form-section">
                 <h4>Linked Clients</h4>
                 <p className="section-description">

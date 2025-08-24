@@ -5,7 +5,6 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { apiRouter } from './routes/api';
 import { errorHandler } from './middleware/errorHandler';
-import { seedDatabase } from './database/seed';
 
 // Load environment variables
 dotenv.config();
@@ -51,12 +50,7 @@ app.listen(PORT, async () => {
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
   console.log(`🔗 API base URL: http://localhost:${PORT}/api`);
   
-  // Seed database with initial data
-  try {
-    await seedDatabase();
-  } catch (error) {
-    console.error('Error seeding database:', error);
-  }
+  // Database initialized without seed data
 });
 
 export default app;

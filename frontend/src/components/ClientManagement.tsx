@@ -8,8 +8,13 @@ import SuccessMessage from './common/SuccessMessage';
 
 interface Client {
   id: number;
+  title?: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
+  dateOfBirth?: string;
+  gender?: string;
+  occupation?: string;
   email?: string;
   phone?: string;
   kycNumber?: string;
@@ -23,9 +28,21 @@ interface Client {
   pincode?: string;
   country?: string;
   status: 'invite_now' | 'pending' | 'active' | 'suspended' | 'deleted';
-  linkedClientId?: string;
+  linkedClientId?: number;
   linkedClientName?: string;
   linkedClientRelationship?: string;
+  contacts?: {
+    id: string;
+    type: 'email' | 'phone';
+    contactPriority: 'primary' | 'secondary';
+    contactDetails: string;
+    isVerified?: boolean;
+  }[];
+  allLinkedClients?: {
+    id: number;
+    name: string;
+    relationshipType: string;
+  }[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -414,18 +431,32 @@ const ClientManagement: React.FC = () => {
   const handleEditClient = (client: Client) => {
     // Map the client data to match what ClientForm expects
     const mappedClient = {
+      title: client.title || '',
       firstName: client.firstName,
-      middleName: '', // Default empty string
+      middleName: client.middleName || '',
       lastName: client.lastName,
+      dateOfBirth: client.dateOfBirth || '',
+      gender: client.gender || '',
+      occupation: client.occupation || '',
       email: client.email || '',
       kycNumber: client.kycNumber || '',
-      phoneNumbers: client.phone ? [{
-        id: 'phone-1',
-        countryCode: '+91',
-        number: client.phone,
-        type: 'primary' as const,
-        isVerified: false
-      }] : [],
+      phoneNumbers: client.contacts ? 
+        client.contacts
+          .filter((contact: any) => contact.type === 'phone')
+          .map((contact: any, index: number) => ({
+            id: contact.id || `phone-${index + 1}`,
+            countryCode: '+91',
+            number: contact.contactDetails,
+            type: contact.contactPriority === 'primary' ? 'primary' as const : 'secondary' as const,
+            isVerified: contact.isVerified || false
+          })) : 
+        (client.phone ? [{
+          id: 'phone-1',
+          countryCode: '+91',
+          number: client.phone,
+          type: 'primary' as const,
+          isVerified: false
+        }] : []),
       address: {
         addressLine1: client.addressLine1 || '',
         addressLine2: client.addressLine2 || '',
@@ -445,14 +476,14 @@ const ClientManagement: React.FC = () => {
       } : undefined,
       otherDocuments: [], // Default empty array
       linkedClients: client.linkedClientId ? [{
-        clientId: parseInt(client.linkedClientId),
+        clientId: client.linkedClientId,
         relationshipType: (client.linkedClientRelationship || 'other') as 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other',
         relationshipDescription: '', // We'll get this from the linked client data
         linkedAt: new Date().toISOString()
       }] : [],
       status: mapStatusForForm(client.status),
       accountBalance: 0, // Default value
-      linkedClientId: client.linkedClientId || '',
+      linkedClientId: client.linkedClientId || undefined,
       linkedClientName: client.linkedClientName || '',
       linkedClientRelationship: client.linkedClientRelationship || ''
     };
@@ -924,18 +955,32 @@ const ClientManagement: React.FC = () => {
           onEdit={() => {
             // Map the client data to match what ClientForm expects
             const mappedClient = {
+              title: selectedClient.title || '',
               firstName: selectedClient.firstName,
-              middleName: '', // Default empty string
+              middleName: selectedClient.middleName || '',
               lastName: selectedClient.lastName,
+              dateOfBirth: selectedClient.dateOfBirth || '',
+              gender: selectedClient.gender || '',
+              occupation: selectedClient.occupation || '',
               email: selectedClient.email || '',
               kycNumber: selectedClient.kycNumber || '',
-              phoneNumbers: selectedClient.phone ? [{
-                id: 'phone-1',
-                countryCode: '+91',
-                number: selectedClient.phone,
-                type: 'primary' as const,
-                isVerified: false
-              }] : [],
+              phoneNumbers: selectedClient.contacts ? 
+                selectedClient.contacts
+                  .filter((contact: any) => contact.type === 'phone')
+                  .map((contact: any, index: number) => ({
+                    id: contact.id || `phone-${index + 1}`,
+                    countryCode: '+91',
+                    number: contact.contactDetails,
+                    type: contact.contactPriority === 'primary' ? 'primary' as const : 'secondary' as const,
+                    isVerified: contact.isVerified || false
+                  })) : 
+                (selectedClient.phone ? [{
+                  id: 'phone-1',
+                  countryCode: '+91',
+                  number: selectedClient.phone,
+                  type: 'primary' as const,
+                  isVerified: false
+                }] : []),
               address: {
                 addressLine1: selectedClient.addressLine1 || '',
                 addressLine2: selectedClient.addressLine2 || '',
@@ -955,14 +1000,14 @@ const ClientManagement: React.FC = () => {
               } : undefined,
               otherDocuments: [], // Default empty array
               linkedClients: selectedClient.linkedClientId ? [{
-                clientId: parseInt(selectedClient.linkedClientId),
+                clientId: selectedClient.linkedClientId,
                 relationshipType: (selectedClient.linkedClientRelationship || 'other') as 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other',
                 relationshipDescription: '', // We'll get this from the linked client data
                 linkedAt: new Date().toISOString()
               }] : [],
               status: mapStatusForForm(selectedClient.status),
               accountBalance: 0, // Default value
-              linkedClientId: selectedClient.linkedClientId || '',
+              linkedClientId: selectedClient.linkedClientId || undefined,
               linkedClientName: selectedClient.linkedClientName || '',
               linkedClientRelationship: selectedClient.linkedClientRelationship || ''
             };

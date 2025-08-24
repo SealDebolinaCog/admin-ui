@@ -374,14 +374,16 @@
 /* Optimized Column Widths */
 .users-table th:nth-child(1), /* Client */
 .users-table td:nth-child(1) {
-  width: 25%;
-  min-width: 200px;
+  width: 30%;
+  min-width: 250px;
+  padding-right: 8px;
 }
 
 .users-table th:nth-child(2), /* Email */
 .users-table td:nth-child(2) {
   width: 25%;
   min-width: 200px;
+  padding-left: 8px;
 }
 
 .users-table th:nth-child(3), /* Phone */
@@ -410,7 +412,7 @@
 }
 
 .users-table td {
-  padding: 16px 12px;
+  padding: 16px 4px;
   border: none;
   color: #333;
   background: white;
@@ -436,6 +438,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
 }
 
 .client-avatar {
@@ -472,6 +475,8 @@
   font-weight: 600;
   color: #333;
   font-size: 15px;
+  flex: 1;
+  min-width: 0;
 }
 
 .table-status-badge {

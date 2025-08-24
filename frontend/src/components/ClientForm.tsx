@@ -85,7 +85,7 @@ interface ClientFormData {
   accountBalance?: number;
   
   // Linked client information (for single linked client)
-  linkedClientId?: string;
+  linkedClientId?: string | number;
   linkedClientName?: string;
   linkedClientRelationship?: string;
 }
@@ -240,7 +240,10 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
       }
       // If we have a linkedClientId but no linkedClients array (from editing), fetch the linked client data
       if (initialData.linkedClientId && (!initialData.linkedClients || initialData.linkedClients.length === 0)) {
-        loadLinkedClientData(parseInt(initialData.linkedClientId));
+        const clientId = typeof initialData.linkedClientId === 'string' ? parseInt(initialData.linkedClientId) : initialData.linkedClientId;
+        if (!isNaN(clientId)) {
+          loadLinkedClientData(clientId);
+        }
       }
     }
   }, [initialData]);
@@ -279,6 +282,21 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
         const clientData = await response.json();
         if (clientData.success) {
           setLinkedClientsData([clientData.data]);
+          
+          // Also update the linkedClients array in formData if it's empty
+          if (!formData.linkedClients || formData.linkedClients.length === 0) {
+            const linkedClient = {
+              clientId: clientData.data.id,
+              relationshipType: (formData.linkedClientRelationship || 'other') as 'spouse' | 'parent' | 'child' | 'sibling' | 'business_partner' | 'guarantor' | 'other',
+              relationshipDescription: '',
+              linkedAt: new Date().toISOString()
+            };
+            
+            setFormData(prev => ({
+              ...prev,
+              linkedClients: [linkedClient]
+            }));
+          }
         }
       }
     } catch (error) {

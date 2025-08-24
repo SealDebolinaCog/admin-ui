@@ -10,6 +10,21 @@ interface PhoneNumber {
   isVerified: boolean;
 }
 
+interface EmailAddress {
+  id: string;
+  email: string;
+  priority: 'primary' | 'secondary';
+  isVerified: boolean;
+}
+
+interface Contact {
+  id: string;
+  type: 'email' | 'phone';
+  contactPriority: 'primary' | 'secondary';
+  contactDetails: string;
+  isVerified?: boolean;
+}
+
 interface Address {
   addressLine1: string;
   addressLine2?: string;
@@ -54,13 +69,21 @@ interface LinkedClient {
 interface ClientDetailData {
   id: number;
   clientId: string;
+  title?: string;
   firstName: string;
   middleName?: string;
   lastName: string;
+  dateOfBirth?: string;
+  gender?: string;
+  occupation?: string;
   address: Address;
   kycNumber: string;
   email?: string;
   phoneNumbers: PhoneNumber[];
+  emails?: EmailAddress[];
+  contacts?: Contact[];
+  linkedClientId?: number;
+  linkedClientName?: string;
   panCard?: PANCard;
   aadhaarCard?: AadhaarCard;
   otherDocuments: Document[];
@@ -89,7 +112,12 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({ client, isOpen, onC
   if (!isOpen) return null;
 
   const getFullName = () => {
-    return `${client.firstName}${client.middleName ? ` ${client.middleName}` : ''} ${client.lastName}`;
+    const parts = [];
+    if (client.title) parts.push(client.title);
+    parts.push(client.firstName);
+    if (client.middleName) parts.push(client.middleName);
+    parts.push(client.lastName);
+    return parts.join(' ');
   };
 
   const getInitials = () => {
@@ -228,6 +256,18 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({ client, isOpen, onC
                       <span>{getFullName()}</span>
                     </div>
                     <div className="info-item">
+                      <label>Gender</label>
+                      <span>{client.gender || 'Not provided'}</span>
+                    </div>
+                    <div className="info-item">
+                      <label>Date of Birth</label>
+                      <span>{client.dateOfBirth ? formatDate(client.dateOfBirth) : 'Not provided'}</span>
+                    </div>
+                    <div className="info-item">
+                      <label>Occupation</label>
+                      <span>{client.occupation || 'Not provided'}</span>
+                    </div>
+                    <div className="info-item">
                       <label>KYC/CIF Number</label>
                       <span>{client.kycNumber}</span>
                     </div>
@@ -245,20 +285,61 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({ client, isOpen, onC
                 {/* Contact Information */}
                 <div className="profile-section">
                   <h3>Contact Information</h3>
-                  <div className="phone-numbers">
-                    {client.phoneNumbers.map((phone, index) => (
-                      <div key={phone.id} className="phone-item">
-                        <div className="phone-details">
-                          <span className="phone-number">
-                            {phone.countryCode} {phone.number}
-                          </span>
-                          <span className="phone-type">{formatPhoneType(phone.type)}</span>
-                        </div>
-                        <div className="phone-status">
-                          {phone.isVerified ? '✅ Verified' : '⏳ Pending'}
-                        </div>
+                  
+                  {/* Email Addresses */}
+                  <div className="contact-subsection">
+                    <h4>📧 Email Addresses</h4>
+                    {client.contacts && client.contacts.filter(contact => contact.type === 'email').length > 0 ? (
+                      <div className="contact-list">
+                        {client.contacts
+                          .filter(contact => contact.type === 'email')
+                          .map((email, index) => (
+                          <div key={email.id || index} className="contact-item">
+                            <div className="contact-details">
+                              <span className="contact-value">{email.contactDetails}</span>
+                              <span className="contact-priority">
+                                {email.contactPriority === 'primary' ? '🔵 Primary' : '⚪ Secondary'}
+                              </span>
+                            </div>
+                            <div className="contact-status">
+                              {email.isVerified ? '✅ Verified' : '⏳ Pending'}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <div className="no-contact">
+                        <span>No email addresses available</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Phone Numbers */}
+                  <div className="contact-subsection">
+                    <h4>📱 Phone Numbers</h4>
+                    {client.contacts && client.contacts.filter(contact => contact.type === 'phone').length > 0 ? (
+                      <div className="contact-list">
+                        {client.contacts
+                          .filter(contact => contact.type === 'phone')
+                          .map((phone, index) => (
+                          <div key={phone.id || index} className="contact-item">
+                            <div className="contact-details">
+                              <span className="contact-value">{phone.contactDetails}</span>
+                              <span className="contact-priority">
+                                {phone.contactPriority === 'primary' ? '🔵 Primary' : '⚪ Secondary'}
+                              </span>
+                            </div>
+                            <div className="contact-status">
+                              {phone.isVerified ? '✅ Verified' : '⏳ Pending'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="no-contact">
+                        <span>No phone numbers available</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -468,34 +549,62 @@ const ClientDetailView: React.FC<ClientDetailViewProps> = ({ client, isOpen, onC
           {activeTab === 'relationships' && (
             <div className="tab-content">
               <div className="relationships-sections">
-                <h3>Linked Clients</h3>
-                {client.linkedClients.length > 0 ? (
-                  <div className="relationships-list">
-                    {client.linkedClients.map((link, index) => (
-                      <div key={index} className="relationship-card">
-                        <div className="relationship-info">
-                          <div className="relationship-type">
-                            <label>Relationship</label>
-                            <span>{formatRelationshipType(link.relationshipType)}</span>
-                          </div>
-                          <div className="relationship-client">
-                            <label>Client ID</label>
-                            <span>{link.clientId}</span>
-                          </div>
-                          {link.relationshipDescription && (
-                            <div className="relationship-description">
-                              <label>Description</label>
-                              <span>{link.relationshipDescription}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="relationship-date">
-                          Linked on: {formatDate(link.linkedAt)}
-                        </div>
+                {/* Primary Linked Client */}
+                {client.linkedClientId && (
+                  <div className="profile-section">
+                    <h3>🔗 Primary Linked Client</h3>
+                    <div className="info-grid">
+                      <div className="info-item">
+                        <label>Linked Client Name</label>
+                        <span>{client.linkedClientName || `Client ID: ${client.linkedClientId}`}</span>
                       </div>
-                    ))}
+                      <div className="info-item">
+                        <label>Linked Client ID</label>
+                        <span>{client.linkedClientId}</span>
+                      </div>
+                    </div>
                   </div>
-                ) : (
+                )}
+                
+                {/* Additional Linked Clients */}
+                <div className="profile-section">
+                  <h3>👥 Additional Relationships</h3>
+                  {client.linkedClients.length > 0 ? (
+                    <div className="relationships-list">
+                      {client.linkedClients.map((link, index) => (
+                        <div key={index} className="relationship-card">
+                          <div className="relationship-info">
+                            <div className="relationship-type">
+                              <label>Relationship</label>
+                              <span>{formatRelationshipType(link.relationshipType)}</span>
+                            </div>
+                            <div className="relationship-client">
+                              <label>Client ID</label>
+                              <span>{link.clientId}</span>
+                            </div>
+                            {link.relationshipDescription && (
+                              <div className="relationship-description">
+                                <label>Description</label>
+                                <span>{link.relationshipDescription}</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="relationship-date">
+                            Linked on: {formatDate(link.linkedAt)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty-relationships">
+                      <div className="empty-icon">👥</div>
+                      <h3>No Additional Relationships</h3>
+                      <p>This client has no additional linked relationships with other clients.</p>
+                    </div>
+                  )}
+                </div>
+                
+                {!client.linkedClientId && client.linkedClients.length === 0 && (
                   <div className="empty-relationships">
                     <div className="empty-icon">👥</div>
                     <h3>No Linked Clients</h3>

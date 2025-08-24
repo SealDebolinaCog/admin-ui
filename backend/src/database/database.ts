@@ -63,6 +63,7 @@ export function initializeDatabase() {
       aadhaarNumber TEXT,
       addressId INTEGER,
       linkedClientId INTEGER,
+      linkedClientRelationship TEXT CHECK (linkedClientRelationship IN ('spouse', 'parent', 'child', 'sibling', 'business_partner', 'guarantor', 'other')),
       status TEXT DEFAULT 'active',
       deletionStatus TEXT DEFAULT 'active' CHECK (deletionStatus IN ('active', 'soft_deleted', 'hard_deleted')),
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -291,6 +292,18 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_log(timestamp);
     CREATE INDEX IF NOT EXISTS idx_audit_operation ON audit_log(operation);
   `);
+
+  // Add migration for linkedClientRelationship column if it doesn't exist
+  try {
+    db.exec(`ALTER TABLE clients ADD COLUMN linkedClientRelationship TEXT CHECK (linkedClientRelationship IN ('spouse', 'parent', 'child', 'sibling', 'business_partner', 'guarantor', 'other'))`);
+    console.log('Added linkedClientRelationship column to existing clients table');
+  } catch (error: any) {
+    if (error.message.includes('duplicate column name')) {
+      console.log('linkedClientRelationship column already exists');
+    } else {
+      console.log('Migration error (likely safe to ignore):', error.message);
+    }
+  }
 
   console.log('Enhanced database with proper normalization initialized successfully!');
 }

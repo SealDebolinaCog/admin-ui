@@ -42,7 +42,7 @@ export class ClientRepository {
     }
 
     if (filters?.search) {
-      query += ` AND (c.firstName LIKE ? OR c.lastName LIKE ? OR c.email LIKE ?)`;
+      query += ` AND (c.firstName LIKE ? OR c.lastName LIKE ? OR c.middleName LIKE ?)`;
       const searchTerm = `%${filters.search}%`;
       params.push(searchTerm, searchTerm, searchTerm);
     }
@@ -88,17 +88,16 @@ export class ClientRepository {
   create(client: any): Client {
     const stmt = this.db.prepare(`
       INSERT INTO clients (
-        firstName, lastName, email, phone, dateOfBirth, gender, occupation,
-        kycNumber, panNumber, aadhaarNumber, addressId, status, linkedClientId,
-        deletionStatus
+        title, firstName, middleName, lastName, dateOfBirth, gender, occupation,
+        kycNumber, panNumber, aadhaarNumber, addressId, linkedClientId, status, deletionStatus
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
     `);
 
     const result = stmt.run(
+      client.title || null,
       client.firstName,
+      client.middleName || null,
       client.lastName,
-      client.email || null,
-      client.phone || null,
       client.dateOfBirth || null,
       client.gender || null,
       client.occupation || null,
@@ -106,8 +105,8 @@ export class ClientRepository {
       client.panNumber || null,
       client.aadhaarNumber || null,
       client.addressId || null,
-      client.status,
-      client.linkedClientId || null
+      client.linkedClientId || null,
+      client.status || 'active'
     );
 
     return { ...client, id: result.lastInsertRowid as number, deletionStatus: 'active' };
@@ -120,8 +119,8 @@ export class ClientRepository {
 
     // Only allow updating specific fields that exist in the new schema
     const allowedFields = [
-      'firstName', 'lastName', 'email', 'phone', 'dateOfBirth', 'gender', 'occupation',
-      'kycNumber', 'panNumber', 'aadhaarNumber', 'addressId', 'status', 'linkedClientId', 'deletionStatus'
+      'title', 'firstName', 'middleName', 'lastName', 'dateOfBirth', 'gender', 'occupation',
+      'kycNumber', 'panNumber', 'aadhaarNumber', 'addressId', 'linkedClientId', 'status', 'deletionStatus'
     ];
 
     Object.entries(client).forEach(([key, value]) => {

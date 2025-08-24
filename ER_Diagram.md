@@ -11,7 +11,8 @@ This document presents the complete ER diagram for the Admin UI application, whi
         │                │                │
     👤 CLIENTS       🏪 SHOPS        🏦 INSTITUTIONS
         │                │                │
-        ├── 📄 DOCS      └── 📸 PICS      └── 💳 ACCOUNTS
+        ├── 📞 CONTACTS  └── 📸 PICS      └── 💳 ACCOUNTS
+        ├── 📄 DOCS                           │
         ├── 📸 PICS                           │
         └── 👥 HOLDERS ──────────────────────┤
                                              │
@@ -22,7 +23,7 @@ This document presents the complete ER diagram for the Admin UI application, whi
     Relationship Flow:
     👤 ──owns──> 🏪 ──has──> 📸
     👤 ──holds──> 💳 ──at──> 🏦
-    👤 ──has──> 📄 & 📸
+    👤 ──has──> 📞, 📄 & 📸
     💳 ──generates──> 💰
     All changes ──logged──> 📋
 ```
@@ -33,6 +34,7 @@ This document presents the complete ER diagram for the Admin UI application, whi
 - 💳 **ACCOUNTS** - Financial accounts
 - 🏦 **INSTITUTIONS** - Banks & post offices
 - 🏠 **ADDRESSES** - Location data
+- 📞 **CONTACTS** - Client contact information
 - 💰 **TRANSACTIONS** - Financial movements
 - 📄 **DOCUMENTS** - KYC & account docs
 - 📸 **PROFILE_PICTURES** - Entity images
@@ -48,13 +50,16 @@ This document presents the complete ER diagram for the Admin UI application, whi
 │                      👤 CLIENTS                            │
 ├─────────────────────────────────────────────────────────────┤
 │ 🔑 id                    INTEGER PRIMARY KEY AUTOINCREMENT │
+│ 👔 title                 TEXT                               │
 │ 📝 firstName             TEXT NOT NULL                      │
+│ 📝 middleName            TEXT                               │
 │ 📝 lastName              TEXT NOT NULL                      │
-│ 📧 email                 TEXT UNIQUE                        │
-│ 📞 phoneNumber           TEXT                               │
-│ 📅 dateOfBirth           DATE                               │
+│ 🎂 dateOfBirth           DATE                               │
 │ 👫 gender                TEXT                               │
 │ 💼 occupation            TEXT                               │
+│ 🆔 kycNumber             TEXT                               │
+│ 🆔 panNumber             TEXT                               │
+│ 🆔 aadhaarNumber         TEXT                               │
 │ 🏠 addressId             INTEGER FK → ADDRESSES(id)        │
 │ 🔗 linkedClientId        INTEGER FK → CLIENTS(id)          │
 │ 🗑️ deletionStatus        TEXT DEFAULT 'active'             │
@@ -62,11 +67,10 @@ This document presents the complete ER diagram for the Admin UI application, whi
 │ 🔄 updatedAt             DATETIME DEFAULT CURRENT_TIMESTAMP │
 ├─────────────────────────────────────────────────────────────┤
 │ 📊 INDEXES:                                                │
-│   • idx_clients_email (email)                              │
-│   • idx_clients_phone (phoneNumber)                        │
 │   • idx_clients_address (addressId)                        │
 │   • idx_clients_linked (linkedClientId)                    │
 │   • idx_clients_deletion (deletionStatus)                  │
+│   • idx_clients_name (firstName, lastName)                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -285,6 +289,26 @@ This document presents the complete ER diagram for the Admin UI application, whi
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### 📞 CONTACTS Table
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     📞 CONTACTS                            │
+├─────────────────────────────────────────────────────────────┤
+│ 🔑 id                    INTEGER PRIMARY KEY AUTOINCREMENT │
+│ 👤 clientId              INTEGER FK → CLIENTS(id)          │
+│ 🏷️ type                  TEXT NOT NULL (email|phone)       │
+│ ⭐ contactPriority       TEXT (primary|secondary)           │
+│ 📝 contactDetails        TEXT NOT NULL                      │
+│ ⏰ createdAt             DATETIME DEFAULT CURRENT_TIMESTAMP │
+│ 🔄 updatedAt             DATETIME DEFAULT CURRENT_TIMESTAMP │
+├─────────────────────────────────────────────────────────────┤
+│ 📊 INDEXES:                                                │
+│   • idx_contacts_client (clientId)                         │
+│   • idx_contacts_type (type)                               │
+│   • idx_contacts_priority (contactPriority)               │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ### 📋 AUDIT_LOG Table
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -337,16 +361,29 @@ erDiagram
 
     CLIENTS {
         int id PK "Auto-increment primary key"
+        text title "Title (Mr, Ms, Mrs, Dr, Prof, etc.)"
         text firstName "Client's first name"
+        text middleName "Client's middle name"
         text lastName "Client's last name"
-        text email "Email address"
-        text phoneNumber "Contact number"
         date dateOfBirth "Date of birth"
-        text gender "Gender"
-        text occupation "Occupation"
+        text gender "Gender identity"
+        text occupation "Professional occupation"
+        text kycNumber "KYC identification number"
+        text panNumber "PAN card number"
+        text aadhaarNumber "Aadhaar card number"
         int addressId FK "Foreign key to ADDRESSES"
-        int linkedClientId FK "Self-reference for linked clients"
+        int linkedClientId FK "Self-referencing for family links"
         text deletionStatus "active|soft_deleted|hard_deleted"
+        datetime createdAt "Auto-generated"
+        datetime updatedAt "Auto-updated"
+    }
+
+    CONTACTS {
+        int id PK "Auto-increment primary key"
+        int clientId FK "Foreign key to CLIENTS"
+        text type "email|phone"
+        text contactPriority "primary|secondary"
+        text contactDetails "Email address or phone number"
         datetime createdAt "Auto-generated"
         datetime updatedAt "Auto-updated"
     }
@@ -460,6 +497,7 @@ erDiagram
     SHOPS ||--o| ADDRESSES : "has address"
     INSTITUTIONS ||--o| ADDRESSES : "has address"
     CLIENTS ||--o| CLIENTS : "linked to (self-ref)"
+    CONTACTS }|--|| CLIENTS : "belongs to"
     SHOPS }|--|| CLIENTS : "owned by"
     ACCOUNTS }|--|| INSTITUTIONS : "maintained at"
     ACCOUNT_HOLDERS }|--|| ACCOUNTS : "belongs to"
@@ -480,8 +518,9 @@ erDiagram
 📊 DATA LIFECYCLE VISUALIZATION
 
 ┌─ 👤 CLIENT ONBOARDING ─────────────────────────────────────┐
-│  1. 👤 Create Client → 🏠 Add Address → 📄 Upload KYC Docs │
-│  2. 📸 Add Profile Picture → ✅ Verify Documents           │
+│  1. 👤 Create Client → 🏠 Add Address → 📞 Add Contacts    │
+│  2. 📄 Upload KYC Docs → 📸 Add Profile Picture            │
+│  3. ✅ Verify Documents                                     │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─ 🏪 BUSINESS SETUP ─────────────────────────────────────────┐
@@ -511,6 +550,7 @@ erDiagram
 
 ### Supporting Entities
 - 🏠 **ADDRESSES**: Normalized address storage for all entities
+- 📞 **CONTACTS**: Client contact information (emails and phone numbers)
 - 👥 **ACCOUNT_HOLDERS**: Many-to-many relationship between clients and accounts
 - 🤝 **SHOP_CLIENTS**: Relationships between shops and their associated clients
 - 💰 **TRANSACTIONS**: Complete financial transaction history

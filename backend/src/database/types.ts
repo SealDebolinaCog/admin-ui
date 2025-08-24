@@ -26,12 +26,22 @@ export interface Institution {
   updatedAt?: string;
 }
 
+export interface Contact {
+  id?: number;
+  clientId: number;
+  type: 'email' | 'phone';
+  contactPriority?: 'primary' | 'secondary';
+  contactDetails: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Client {
   id?: number;
+  title?: string;
   firstName: string;
+  middleName?: string;
   lastName: string;
-  email?: string;
-  phone?: string;
   dateOfBirth?: string;
   gender?: string;
   occupation?: string;

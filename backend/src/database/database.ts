@@ -51,20 +51,38 @@ export function initializeDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS clients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
       firstName TEXT NOT NULL,
+      middleName TEXT,
       lastName TEXT NOT NULL,
-      email TEXT UNIQUE,
-      phoneNumber TEXT,
       dateOfBirth DATE,
       gender TEXT,
       occupation TEXT,
+      kycNumber TEXT,
+      panNumber TEXT,
+      aadhaarNumber TEXT,
       addressId INTEGER,
       linkedClientId INTEGER,
+      status TEXT DEFAULT 'active',
       deletionStatus TEXT DEFAULT 'active' CHECK (deletionStatus IN ('active', 'soft_deleted', 'hard_deleted')),
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (addressId) REFERENCES addresses(id) ON DELETE SET NULL,
       FOREIGN KEY (linkedClientId) REFERENCES clients(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create CONTACTS table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      clientId INTEGER NOT NULL,
+      type TEXT NOT NULL CHECK (type IN ('email', 'phone')),
+      contactPriority TEXT CHECK (contactPriority IN ('primary', 'secondary')),
+      contactDetails TEXT NOT NULL,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (clientId) REFERENCES clients(id) ON DELETE CASCADE
     )
   `);
 
@@ -219,11 +237,15 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_institutions_address ON institutions(addressId);
     
     -- Client indexes
-    CREATE INDEX IF NOT EXISTS idx_clients_email ON clients(email);
-    CREATE INDEX IF NOT EXISTS idx_clients_phone ON clients(phoneNumber);
     CREATE INDEX IF NOT EXISTS idx_clients_address ON clients(addressId);
     CREATE INDEX IF NOT EXISTS idx_clients_linked ON clients(linkedClientId);
     CREATE INDEX IF NOT EXISTS idx_clients_deletion ON clients(deletionStatus);
+    CREATE INDEX IF NOT EXISTS idx_clients_name ON clients(firstName, lastName);
+    
+    -- Contact indexes
+    CREATE INDEX IF NOT EXISTS idx_contacts_client ON contacts(clientId);
+    CREATE INDEX IF NOT EXISTS idx_contacts_type ON contacts(type);
+    CREATE INDEX IF NOT EXISTS idx_contacts_priority ON contacts(contactPriority);
     
     -- Shop indexes
     CREATE INDEX IF NOT EXISTS idx_shops_owner ON shops(ownerId);

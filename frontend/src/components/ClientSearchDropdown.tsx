@@ -107,14 +107,10 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
 
   const getClientDisplayName = (client: Client) => {
     const fullName = `${client.firstName} ${client.lastName}`.trim();
-    const details = [];
-    
-    if (client.email) details.push(client.email);
-    if (client.phone) details.push(client.phone);
     
     return {
       name: fullName,
-      details: details.length > 0 ? details.join(' • ') : 'No contact info'
+      details: '' // No contact info displayed
     };
   };
 
@@ -190,7 +186,9 @@ const ClientSearchDropdown: React.FC<ClientSearchDropdownProps> = ({
                     </div>
                     <div className="client-option-info">
                       <div className="client-option-name">{display.name}</div>
-                      <div className="client-option-details">{display.details}</div>
+                      {display.details && (
+                        <div className="client-option-details">{display.details}</div>
+                      )}
                     </div>
                     <div className="client-option-status">
                       <span className={`status-badge ${client.status}`}>

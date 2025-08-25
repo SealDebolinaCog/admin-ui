@@ -1,0 +1,39 @@
+{
+  "name": "admin-ui-documents",
+  "version": "1.0.0",
+  "description": "Documents microservice for admin-ui application",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "migrate": "ts-node src/migration/migrateFromBackend.ts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "dotenv": "^16.3.1",
+    "better-sqlite3": "^9.2.2",
+    "multer": "^1.4.5-lts.1",
+    "mime-types": "^2.1.35",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/morgan": "^1.9.9",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/multer": "^1.4.11",
+    "@types/mime-types": "^2.1.4",
+    "@types/uuid": "^9.0.7",
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.2"
+  }
+}

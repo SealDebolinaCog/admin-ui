@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './ClientForm.css';
 import ClientSearchDropdown from './ClientSearchDropdown';
 
@@ -26,6 +27,7 @@ interface PANCard {
   imageUrl?: string;
   verificationStatus: 'pending' | 'verified' | 'rejected';
   verifiedAt?: string;
+  selectedFile?: File;
 }
 
 interface AadhaarCard {
@@ -33,6 +35,7 @@ interface AadhaarCard {
   imageUrl?: string;
   verificationStatus: 'pending' | 'verified' | 'rejected';
   verifiedAt?: string;
+  selectedFile?: File;
 }
 
 interface Document {
@@ -1678,8 +1681,13 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                       id="panImage"
                       accept="image/*,.pdf,application/pdf"
                       onChange={(e) => {
-                        // Handle file upload
-                        console.log('PAN file selected:', e.target.files?.[0]);
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setFormData(prev => ({
+                            ...prev,
+                            panCard: { ...prev.panCard!, selectedFile: file }
+                          }));
+                        }
                       }}
                     />
                   </div>
@@ -1727,8 +1735,13 @@ const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, init
                       id="aadhaarImage"
                       accept="image/*,.pdf,application/pdf"
                       onChange={(e) => {
-                        // Handle file upload
-                        console.log('Aadhaar file selected:', e.target.files?.[0]);
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setFormData(prev => ({
+                            ...prev,
+                            aadhaarCard: { ...prev.aadhaarCard!, selectedFile: file }
+                          }));
+                        }
                       }}
                     />
                   </div>

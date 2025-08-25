@@ -76,6 +76,7 @@ test: ## Run tests
 	@echo "🧪 Running tests..."
 	@npm run test --workspace=backend
 	@npm run test --workspace=frontend
+	@npm run test --workspace=documents
 
 test-backend: ## Run backend tests only
 	@echo "🧪 Running backend tests..."
@@ -84,6 +85,10 @@ test-backend: ## Run backend tests only
 test-frontend: ## Run frontend tests only
 	@echo "🧪 Running frontend tests..."
 	@npm run test --workspace=frontend
+
+test-documents: ## Run documents tests only
+	@echo "🧪 Running documents tests..."
+	@npm run test --workspace=documents
 
 # Utility commands
 logs: ## Show logs from all services
@@ -97,6 +102,9 @@ logs-frontend-dev: ## Show frontend development logs
 
 logs-frontend-prod: ## Show frontend production logs
 	@docker-compose logs -f frontend-prod
+
+logs-documents: ## Show documents logs
+	@docker-compose logs -f documents
 
 stop: ## Stop all services
 	@echo "🛑 Stopping all services..."
@@ -160,6 +168,7 @@ health: ## Check health of running services
 	@echo "🏥 Checking service health..."
 	@curl -f http://localhost:3001/health || echo "❌ Backend health check failed"
 	@curl -f http://localhost/health || echo "❌ Frontend health check failed"
+	@curl -f http://localhost:3002/health || echo "❌ Documents health check failed"
 
 # Database commands (for future use)
 db-setup: ## Setup database (placeholder for future implementation)
@@ -180,6 +189,9 @@ shell-backend: ## Open shell in backend container
 
 shell-frontend: ## Open shell in frontend container (if running)
 	@docker-compose exec frontend-dev sh || docker-compose exec frontend-prod sh
+
+shell-documents: ## Open shell in documents container
+	@docker-compose exec documents sh
 
 # Quick commands
 quick-dev: setup dev-detached ## Quick start: setup + development environment

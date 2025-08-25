@@ -94,7 +94,8 @@ const SimpleClientDetailView: React.FC<SimpleClientDetailViewProps> = ({ client,
     setDocumentLoading(prev => ({ ...prev, [loadingKey]: true }));
     
     try {
-      const response = await fetch(`/api/clients/${clientId}/documents/${documentType}/download`, {
+      const docType = documentType === 'pan' ? 'pan_card' : 'aadhar_card';
+      const response = await fetch(`http://localhost:3002/api/documents/entity/client/${clientId}/type/${docType}/download`, {
         method: 'GET',
         headers: {
           'Accept': 'application/octet-stream',
@@ -155,7 +156,8 @@ const SimpleClientDetailView: React.FC<SimpleClientDetailViewProps> = ({ client,
     setDocumentLoading(prev => ({ ...prev, [loadingKey]: true }));
     
     try {
-      const response = await fetch(`/api/clients/${clientId}/documents/${documentType}/view`, {
+      const docType = documentType === 'pan' ? 'pan_card' : 'aadhar_card';
+      const response = await fetch(`http://localhost:3002/api/documents/entity/client/${clientId}/type/${docType}/view`, {
         method: 'GET',
         headers: {
           'Accept': 'application/pdf,application/octet-stream',

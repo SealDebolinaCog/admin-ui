@@ -68,6 +68,7 @@ const ClientManagement: React.FC = () => {
   const [newClient, setNewClient] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [searchFilter, setSearchFilter] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const isInitialMount = useRef(true);
   
   // Filter and Advanced Search state
   const [showFilters, setShowFilters] = useState(false);
@@ -194,19 +195,23 @@ const ClientManagement: React.FC = () => {
   };
 
   // Fetch clients from database
-  const fetchClients = useCallback(async (page = currentPage, limit = recordsPerPage, search = searchFilter) => {
+  const fetchClients = async (page?: number, limit?: number, search?: string) => {
     try {
       setLoading(true);
       clearAllMessages();
       
+      const actualPage = page || currentPage;
+      const actualLimit = limit || recordsPerPage;
+      const actualSearch = search !== undefined ? search : searchFilter;
+      
       const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString()
+        page: actualPage.toString(),
+        limit: actualLimit.toString()
       });
       
       // Add search parameter
-      if (search && search.length >= 3) {
-        params.append('search', search);
+      if (actualSearch && actualSearch.length >= 3) {
+        params.append('search', actualSearch);
       }
 
       // Add status filter
@@ -239,27 +244,29 @@ const ClientManagement: React.FC = () => {
       }
       
       const response = await axios.get<ApiResponse<Client[]>>(`/api/clients?${params}`);
+      
       if (response.data.success) {
         setClients(response.data.data);
         
         // Extract pagination info from response
         const totalCount = response.data.count || 0;
-        const calculatedTotalPages = Math.ceil(totalCount / limit);
+        const calculatedTotalPages = Math.ceil(totalCount / actualLimit);
         
         setTotalRecords(totalCount);
         setTotalPages(calculatedTotalPages);
-        setCurrentPage(page);
+        setCurrentPage(actualPage);
         
         // Calculate pagination info
-        const startRecord = totalCount > 0 ? ((page - 1) * limit) + 1 : 0;
-        const endRecord = Math.min(page * limit, totalCount);
+        const startRecord = totalCount > 0 ? ((actualPage - 1) * actualLimit) + 1 : 0;
+        const endRecord = Math.min(actualPage * actualLimit, totalCount);
         
         setPagination({
-          hasNextPage: page < calculatedTotalPages,
-          hasPrevPage: page > 1,
+          hasNextPage: actualPage < calculatedTotalPages,
+          hasPrevPage: actualPage > 1,
           startRecord,
           endRecord
         });
+        
       } else {
         setError('Failed to fetch clients');
       }
@@ -269,16 +276,20 @@ const ClientManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, recordsPerPage, searchFilter, appliedFilters, appliedAdvancedSearch, clearAllMessages, setError]);
+  };
 
+  // Initial load and when dependencies change
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
-
-  // Trigger fetchClients when applied filters change
-  useEffect(() => {
-    fetchClients();
-  }, [appliedFilters]);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchClients();
+    } else {
+      const timeoutId = setTimeout(() => {
+        fetchClients();
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [currentPage, recordsPerPage, searchFilter, appliedFilters, appliedAdvancedSearch]);
 
   // Suspend client
   const handleSuspendClient = async (clientId: number) => {
@@ -334,6 +345,31 @@ const ClientManagement: React.FC = () => {
     return client ? `${client.firstName} ${client.lastName}`.trim() : `Client #${clientId}`;
   };
 
+  // Upload document to Documents microservice
+  const uploadDocument = async (clientId: number, documentType: string, file: File, documentNumber?: string) => {
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      if (documentNumber) {
+        formData.append('documentNumber', documentNumber);
+      }
+
+      const response = await axios.post(
+        `http://localhost:3002/api/documents/entity/client/${clientId}/type/${documentType}/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Error uploading ${documentType}:`, error);
+      throw error;
+    }
+  };
+
   // Handle client form submission
   const handleClientFormSubmit = async (formData: any) => {
     try {
@@ -371,13 +407,40 @@ const ClientManagement: React.FC = () => {
 
         const response = await axios.put(`/api/clients/${editingClient.id}`, clientUpdateData);
         if (response.data.success) {
+          const updatedClient = response.data.data;
+          
+          // Upload documents if they exist
+          const uploadPromises = [];
+          
+          if (formData.panCard?.selectedFile && formData.panCard?.number) {
+            uploadPromises.push(
+              uploadDocument(updatedClient.id, 'pan_card', formData.panCard.selectedFile, formData.panCard.number)
+            );
+          }
+          
+          if (formData.aadhaarCard?.selectedFile && formData.aadhaarCard?.number) {
+            uploadPromises.push(
+              uploadDocument(updatedClient.id, 'aadhar_card', formData.aadhaarCard.selectedFile, formData.aadhaarCard.number)
+            );
+          }
+          
+          // Wait for all document uploads to complete
+          if (uploadPromises.length > 0) {
+            try {
+              await Promise.all(uploadPromises);
+              console.log('All documents uploaded successfully');
+            } catch (uploadError) {
+              console.error('Error uploading documents:', uploadError);
+              setError('Client updated but some documents failed to upload. You can upload them later.');
+            }
+          }
+          
           handleCloseForms();
  
-          // Refresh the shops data to show the latest changes
+          // Refresh the client data to show the latest changes
           await fetchClients();
           
-          // Update selectedShop with the response data and show view modal
-          const updatedClient = response.data.data;
+          // Update selectedClient with the response data and show view modal
           setSelectedClient(updatedClient);
           setShowClientDetail(true);
           setSuccessMessage('Client updated successfully!');
@@ -415,6 +478,34 @@ const ClientManagement: React.FC = () => {
 
         const response = await axios.post('/api/clients', clientData);
         if (response.data.success) {
+          const newClient = response.data.data;
+          
+          // Upload documents if they exist
+          const uploadPromises = [];
+          
+          if (formData.panCard?.selectedFile && formData.panCard?.number) {
+            uploadPromises.push(
+              uploadDocument(newClient.id, 'pan_card', formData.panCard.selectedFile, formData.panCard.number)
+            );
+          }
+          
+          if (formData.aadhaarCard?.selectedFile && formData.aadhaarCard?.number) {
+            uploadPromises.push(
+              uploadDocument(newClient.id, 'aadhar_card', formData.aadhaarCard.selectedFile, formData.aadhaarCard.number)
+            );
+          }
+          
+          // Wait for all document uploads to complete
+          if (uploadPromises.length > 0) {
+            try {
+              await Promise.all(uploadPromises);
+              console.log('All documents uploaded successfully');
+            } catch (uploadError) {
+              console.error('Error uploading documents:', uploadError);
+              setError('Client created but some documents failed to upload. You can upload them later.');
+            }
+          }
+          
           setSuccessMessage('Client added successfully!');
           await fetchClients();
           handleCloseForms();

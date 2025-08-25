@@ -5,15 +5,17 @@
   "private": true,
   "workspaces": [
     "backend",
-    "frontend"
+    "frontend",
+    "documents"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:documents\"",
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
-    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "dev:documents": "npm run dev --workspace=documents",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend && npm run build --workspace=documents",
     "start": "npm run start --workspace=backend",
-    "test": "npm run test --workspace=backend && npm run test --workspace=frontend"
+    "test": "npm run test --workspace=backend && npm run test --workspace=frontend && npm run test --workspace=documents"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

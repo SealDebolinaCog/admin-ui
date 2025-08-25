@@ -120,39 +120,7 @@ export interface Transaction {
   updatedAt?: string;
 }
 
-export interface ProfilePicture {
-  id?: number;
-  entityType: 'client' | 'shop' | 'account';
-  entityId: number;
-  imageType: 'profile' | 'outlet' | 'front_page';
-  fileName: string;
-  filePath: string;
-  fileSize: number;
-  mimeType: string;
-  uploadedAt?: string;
-  updatedAt?: string;
-  isActive?: number;
-}
 
-export interface Document {
-  id?: number;
-  entityType: 'client' | 'account';
-  entityId: number;
-  documentType: 'pan_card' | 'aadhar_card' | 'passport' | 'driving_license' | 'voter_id' | 'passbook_page' | 'statement' | 'cheque_leaf' | 'fd_receipt' | 'loan_document';
-  documentNumber?: string;
-  fileName: string;
-  filePath: string;
-  fileSize: number;
-  mimeType: string;
-  uploadedAt?: string;
-  updatedAt?: string;
-  expiryDate?: string;
-  isVerified?: number;
-  isActive?: number;
-  verifiedBy?: string;
-  verifiedAt?: string;
-  notes?: string;
-}
 
 export interface AuditLog {
   id?: number;

@@ -1,7 +1,8 @@
 /* Main Container Layout */
 .users-management {
   padding: 2rem;
-  max-width: 1200px;
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
   min-height: 100vh;
   background-color: #f8fafc;
@@ -18,6 +19,7 @@
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 16px;
+  width: 100%;
 }
 
 .header-content h1 {
@@ -72,6 +74,7 @@
   overflow-y: auto;
   height: 100vh;
   padding: 0;
+  width: 100%;
 }
 
 /* Fix for the App container */
@@ -79,6 +82,7 @@
   display: flex;
   height: 100vh;
   overflow: hidden;
+  width: 100%;
 }
 
 /* Ensure the navigation doesn't interfere with content */
@@ -86,6 +90,7 @@
   flex-shrink: 0;
   height: 100vh;
   overflow-y: auto;
+  width: 250px;
 }
 
 .user-management {
@@ -342,8 +347,9 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  overflow-x: auto;
   margin-bottom: 24px;
+  width: 100%;
 }
 
 .users-table-container .users-table tbody tr {
@@ -352,8 +358,10 @@
 
 .users-table {
   width: 100%;
+  min-width: 1000px;
   border-collapse: collapse;
   background: white;
+  table-layout: fixed;
 }
 
 .users-table th {
@@ -374,50 +382,57 @@
 /* Optimized Column Widths */
 .users-table th:nth-child(1), /* Client */
 .users-table td:nth-child(1) {
-  width: 30%;
-  min-width: 250px;
-  padding-right: 8px;
+  width: 20%;
+  padding: 16px 12px;
+  min-width: 200px;
 }
 
 .users-table th:nth-child(2), /* Email */
 .users-table td:nth-child(2) {
   width: 25%;
-  min-width: 200px;
-  padding-left: 8px;
+  padding: 16px 12px;
+  min-width: 250px;
 }
 
 .users-table th:nth-child(3), /* Phone */
 .users-table td:nth-child(3) {
-  width: 20%;
+  width: 15%;
+  padding: 16px 12px;
   min-width: 150px;
 }
 
 .users-table th:nth-child(4), /* Address */
 .users-table td:nth-child(4) {
-  width: 20%;
-  min-width: 200px;
+  width: 25%;
+  padding: 16px 12px;
+  min-width: 250px;
 }
 
 .users-table th:nth-child(5), /* Status */
 .users-table td:nth-child(5) {
-  width: 12%;
-  min-width: 130px;
+  width: 10%;
   white-space: nowrap;
+  text-align: center;
+  padding: 16px 8px;
+  min-width: 120px;
 }
 
 .users-table th:nth-child(6), /* Actions */
 .users-table td:nth-child(6) {
-  width: 8%;
-  min-width: 120px;
+  width: 5%;
+  text-align: center;
+  padding: 16px 8px;
+  min-width: 100px;
 }
 
 .users-table td {
-  padding: 16px 4px;
   border: none;
   color: #333;
   background: white;
   vertical-align: middle;
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-row {
@@ -587,7 +602,12 @@
 .address-cell {
   font-size: 13px;
   color: #555;
-  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.email-cell, .phone-cell {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -998,6 +1018,9 @@
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .empty-icon {

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { ClientRepository, type Client } from '../database/clients';
+import { getDatabase } from '../database/database';
+import { ClientRepository } from '../database/clients';
 
 const router = Router();
 const clientRepo = new ClientRepository();
@@ -16,12 +17,21 @@ router.get('/', (req, res) => {
     if (district) filters.district = district as string;
 
     const clients = clientRepo.getAll(filters);
+    
+    // Disable caching for this endpoint
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+    
     res.json({
       success: true,
       data: clients,
       count: clients.length
     });
   } catch (error) {
+    console.error('Error in GET /api/clients:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch clients',
@@ -69,13 +79,12 @@ router.post('/', async (req, res) => {
     console.log('Full request body:', JSON.stringify(req.body, null, 2));
     console.log('Request headers:', req.headers);
     
-    const { address, contacts, documents, ...clientData } = req.body;
+    const { address, contacts, ...clientData } = req.body;
     
     console.log('Extracted data:');
     console.log('- clientData:', clientData);
     console.log('- address:', address);
     console.log('- contacts:', contacts);
-    console.log('- documents:', documents);
     
     // Validate required fields
     if (!clientData.firstName || !clientData.lastName) {
@@ -134,39 +143,6 @@ router.post('/', async (req, res) => {
       }
     }
     
-    // Handle documents creation if provided
-    if (documents && Array.isArray(documents) && documents.length > 0) {
-      try {
-        const { DocumentRepository } = await import('../database/documents');
-        const documentRepo = new DocumentRepository();
-        
-        const documentsToCreate = documents.map(document => ({
-          entityType: 'client' as const,
-          entityId: newClient.id!,
-          documentType: document.documentType,
-          documentNumber: document.documentNumber || null,
-          fileName: document.fileName,
-          filePath: document.filePath,
-          fileSize: document.fileSize,
-          mimeType: document.mimeType,
-          expiryDate: document.expiryDate || null,
-          isVerified: document.isVerified || false,
-          isActive: document.isActive !== undefined ? document.isActive : true,
-          notes: document.notes || null
-        }));
-        
-        console.log('Creating documents:', documentsToCreate);
-        const createdDocuments = [];
-        for (const doc of documentsToCreate) {
-          const createdDoc = documentRepo.create(doc);
-          createdDocuments.push(createdDoc);
-        }
-        console.log('Created documents:', createdDocuments);
-      } catch (documentError) {
-        console.error('Error creating documents:', documentError);
-        // Don't fail the entire client creation if documents fail
-      }
-    }
     
     res.status(201).json({
       success: true,
@@ -376,158 +352,6 @@ router.get('/status/:status', (req, res) => {
   }
 });
 
-// Document download endpoint
-router.get('/:id/documents/:type/download', async (req, res) => {
-  try {
-    const clientId = parseInt(req.params.id);
-    const documentType = req.params.type as 'pan' | 'aadhaar';
 
-    if (isNaN(clientId)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid client ID'
-      });
-    }
-
-    if (!['pan', 'aadhaar'].includes(documentType)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid document type'
-      });
-    }
-
-    // Get document from database
-    const documentQuery = `
-      SELECT fileName, filePath, mimeType 
-      FROM documents 
-      WHERE entityType = 'client' 
-        AND entityId = ? 
-        AND documentType = ? 
-        AND isActive = 1
-      ORDER BY uploadedAt DESC 
-      LIMIT 1
-    `;
-    
-    const db = require('../database/database').getDatabase();
-    const stmt = db.prepare(documentQuery);
-    const document = stmt.get(clientId, documentType === 'pan' ? 'pan_card' : 'aadhar_card');
-
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        error: `${documentType.toUpperCase()} document not found`
-      });
-    }
-
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Resolve file path relative to backend directory
-    const backendRoot = path.resolve(__dirname, '../../../backend');
-    const fullFilePath = path.join(backendRoot, document.filePath.replace(/^\//, ''));
-    
-    // Check if file exists
-    if (!fs.existsSync(fullFilePath)) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document file not found on server'
-      });
-    }
-
-    // Set appropriate headers for download
-    res.setHeader('Content-Disposition', `attachment; filename="${document.fileName}"`);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Cache-Control', 'no-cache');
-    
-    // Stream the file
-    const fileStream = fs.createReadStream(fullFilePath);
-    fileStream.pipe(res);
-
-  } catch (error) {
-    console.error('Error downloading document:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to download document',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// Document view endpoint
-router.get('/:id/documents/:type/view', async (req, res) => {
-  try {
-    const clientId = parseInt(req.params.id);
-    const documentType = req.params.type as 'pan' | 'aadhaar';
-
-    if (isNaN(clientId)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid client ID'
-      });
-    }
-
-    if (!['pan', 'aadhaar'].includes(documentType)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid document type'
-      });
-    }
-
-    // Get document from database
-    const documentQuery = `
-      SELECT fileName, filePath, mimeType 
-      FROM documents 
-      WHERE entityType = 'client' 
-        AND entityId = ? 
-        AND documentType = ? 
-        AND isActive = 1
-      ORDER BY uploadedAt DESC 
-      LIMIT 1
-    `;
-    
-    const db = require('../database/database').getDatabase();
-    const stmt = db.prepare(documentQuery);
-    const document = stmt.get(clientId, documentType === 'pan' ? 'pan_card' : 'aadhar_card');
-
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        error: `${documentType.toUpperCase()} document not found`
-      });
-    }
-
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Resolve file path relative to backend directory
-    const backendRoot = path.resolve(__dirname, '../../../backend');
-    const fullFilePath = path.join(backendRoot, document.filePath.replace(/^\//, ''));
-    
-    // Check if file exists
-    if (!fs.existsSync(fullFilePath)) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document file not found on server'
-      });
-    }
-
-    // Set appropriate headers for viewing
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${document.fileName}"`);
-    res.setHeader('Cache-Control', 'no-cache');
-    
-    // Stream the file
-    const fileStream = fs.createReadStream(fullFilePath);
-    fileStream.pipe(res);
-
-  } catch (error) {
-    console.error('Error viewing document:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to view document',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
 
 export default router; 

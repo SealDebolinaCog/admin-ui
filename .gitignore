@@ -8,3 +8,6 @@ backend/test-aadhaar.png
 backend/test-pan.png
 backend/test-pan.txt
 backend/uploads/documents
+documents/dist
+documents/data
+documents/uploads

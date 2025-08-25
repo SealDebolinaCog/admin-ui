@@ -171,46 +171,7 @@ export function initializeDatabase() {
     )
   `);
 
-  // Create PROFILE_PICTURES table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS profile_pictures (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      entityType TEXT NOT NULL CHECK (entityType IN ('client', 'shop', 'account')),
-      entityId INTEGER NOT NULL,
-      imageType TEXT NOT NULL CHECK (imageType IN ('profile', 'outlet', 'front_page')),
-      fileName TEXT NOT NULL,
-      filePath TEXT NOT NULL,
-      fileSize INTEGER NOT NULL,
-      mimeType TEXT NOT NULL,
-      uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      isActive INTEGER DEFAULT 1,
-      UNIQUE(entityType, entityId, imageType, isActive)
-    )
-  `);
 
-  // Create DOCUMENTS table
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS documents (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      entityType TEXT NOT NULL CHECK (entityType IN ('client', 'account')),
-      entityId INTEGER NOT NULL,
-      documentType TEXT NOT NULL CHECK (documentType IN ('pan_card', 'aadhar_card', 'passport', 'driving_license', 'voter_id', 'passbook_page', 'statement', 'cheque_leaf', 'fd_receipt', 'loan_document')),
-      documentNumber TEXT,
-      fileName TEXT NOT NULL,
-      filePath TEXT NOT NULL,
-      fileSize INTEGER NOT NULL,
-      mimeType TEXT NOT NULL,
-      uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      expiryDate DATE,
-      isVerified INTEGER DEFAULT 0,
-      isActive INTEGER DEFAULT 1,
-      verifiedBy TEXT,
-      verifiedAt DATETIME,
-      notes TEXT
-    )
-  `);
 
   // Create AUDIT_LOG table
   db.exec(`
@@ -274,18 +235,6 @@ export function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(transactionType);
     CREATE INDEX IF NOT EXISTS idx_transactions_status ON transactions(status);
     
-    -- Profile picture indexes
-    CREATE INDEX IF NOT EXISTS idx_profile_pictures_entity ON profile_pictures(entityType, entityId);
-    CREATE INDEX IF NOT EXISTS idx_profile_pictures_type ON profile_pictures(imageType);
-    CREATE INDEX IF NOT EXISTS idx_profile_pictures_active ON profile_pictures(isActive);
-    
-    -- Document indexes
-    CREATE INDEX IF NOT EXISTS idx_documents_entity ON documents(entityType, entityId);
-    CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(documentType);
-    CREATE INDEX IF NOT EXISTS idx_documents_number ON documents(documentNumber);
-    CREATE INDEX IF NOT EXISTS idx_documents_verified ON documents(isVerified);
-    CREATE INDEX IF NOT EXISTS idx_documents_active ON documents(isActive);
-    CREATE INDEX IF NOT EXISTS idx_documents_expiry ON documents(expiryDate);
     
     -- Audit log indexes
     CREATE INDEX IF NOT EXISTS idx_audit_table_record ON audit_log(tableName, recordId);
